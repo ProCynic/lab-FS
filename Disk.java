@@ -35,9 +35,7 @@ public class Disk{
   //-------------------------------------------------------
   // Disk
   //-------------------------------------------------------
-  public Disk(DiskCallback callback, float failProb)
-  throws FileNotFoundException
-  {
+  public Disk(DiskCallback callback, float failProb) throws FileNotFoundException {
     DiskWorker dw;
 
     this.file = new RandomAccessFile(PATH, "rws");
@@ -110,9 +108,7 @@ public class Disk{
   // getWork() -- used by worker thread. Block until a
   // read or write request needs attention.
   //-------------------------------------------------------
-  public DiskResult getWork()
-    throws IOException
-  {
+  public DiskResult getWork() throws IOException {
     int skip;
     DiskResult dr;
 
@@ -151,8 +147,7 @@ public class Disk{
   // set diskIsDead and signal all threads. No new
   // requests will be issued for this disk.
   //-------------------------------------------------------
-  private void randomlyKillDisk()
-  {
+  private void randomlyKillDisk() {
     float coin;
 
     if(diskIsDead){
@@ -166,5 +161,4 @@ public class Disk{
     }
     return;
   }
-
 }
