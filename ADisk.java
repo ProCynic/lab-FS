@@ -111,7 +111,10 @@ public class ADisk implements DiskCallback{
   public void commitTransaction(TransID tid) 
     throws IOException, IllegalArgumentException {
 	  lock.lock();
-	  for (Write w : tid)
+	  for (Action w : tid) {
+		  w.apply();
+		  // TODO: Wait to finish
+	  }
 	  lock.unlock();
   }
 

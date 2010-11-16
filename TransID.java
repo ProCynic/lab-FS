@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -33,14 +34,50 @@ public class TransID implements Iterable<Action>{
 }
 
 abstract class Action {
+	protected int ActionTag;
+	protected Disk disk;
+	protected int sectorNum;
+	protected byte[] buffer;
+	Action(int sectorNum, byte buffer[], Disk disk) {
+		this.disk = disk;
+		this.sectorNum = sectorNum;
+		this.buffer = buffer;
+	}
 	
+	abstract void apply();
 }
 
 class Write extends Action{
+	Write(int sectorNum, byte buffer[], Disk disk){
+		super(sectorNum, buffer, disk);
+	}
+
+	@Override
+	void apply() {
+		try {
+			this.disk.startRequest(Disk.WRITE, this.ActionTag, this.sectorNum, this.buffer);
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		// TODO Auto-generated method stub
+		
+	}
 	
 }
 
 class Read extends Action{
-	
+	Read(int sectorNum, Disk disk, byte[] buffer) {
+		super(sectorNum, buffer, disk);
+	}
+
+	@Override
+	void apply() {
+		// TODO Auto-generated method stub
+		
+	}
 
 }
