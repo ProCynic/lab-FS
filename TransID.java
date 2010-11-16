@@ -24,6 +24,11 @@ public class TransID implements Iterable<Write>{
 	private ArrayList<Write> writes;
 	
 	public TransID() {
+		this.writes = new ArrayList<Write>();
+	}
+	
+	public void add(int sectorNum, byte[] buffer) {
+		writes.add(new Write(sectorNum, buffer));
 	}
 
 	@Override
@@ -34,28 +39,19 @@ public class TransID implements Iterable<Write>{
 }
 
 class Write {
-	protected int WriteTag;
-	protected Disk disk;
-	protected int sectorNum;
-	protected byte[] buffer;
-	Write(int sectorNum, byte buffer[], Disk disk) {
-		this.disk = disk;
+	public int sectorNum;
+	public byte[] buffer;
+	
+	Write(int sectorNum, byte buffer[]) {
+		
+		if (buffer.length != Disk.SECTOR_SIZE)
+			  throw new IllegalArgumentException();
+		
+		if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
+			throw new IndexOutOfBoundsException();
 		this.sectorNum = sectorNum;
 		this.buffer = buffer;
 	}
-
-	void apply() {
-		try {
-			this.disk.startRequest(Disk.WRITE, this.WriteTag, this.sectorNum, this.buffer);  //TODO: sectorNum should be logHead
-		} catch (IllegalArgumentException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		// TODO Auto-generated method stub
-		
-	}
+	
 	
 }

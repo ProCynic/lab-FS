@@ -18,9 +18,9 @@ public class ADisk implements DiskCallback{
   // The size of the redo log in sectors
   //-------------------------------------------------------
   public static final int REDO_LOG_SECTORS = 1024;
+  private int logHead = 0;
+  private int logTail = 0;
   private Disk disk;
-  private long logHead;
-  private long logTail;
   private SimpleLock lock;
 
   //-------------------------------------------------------
@@ -54,6 +54,8 @@ public class ADisk implements DiskCallback{
 		  //TODO: Read log, redo any commited transactions, update log
 	  }
   }
+  
+
 
   //-------------------------------------------------------
   //
@@ -113,11 +115,13 @@ public class ADisk implements DiskCallback{
   public void commitTransaction(TransID tid) 
     throws IOException, IllegalArgumentException {
 	  lock.lock();
-	  for (Write w : tid) {
-		  w.apply();
-		  // TODO: Wait to finish
-	  }
+	  for (Write w : tid)
+		  logWrite(w);
+	  //TODO: write Commit to log
+	  //TODO: wait to finish
+	  //TODO: start process to move writes to disk;
 	  lock.unlock();
+	  return;
   }
 
 
@@ -135,6 +139,7 @@ public class ADisk implements DiskCallback{
   public void abortTransaction(TransID tid) 
     throws IllegalArgumentException
   {
+	  tid = null;
   }
 
 
@@ -164,6 +169,11 @@ public class ADisk implements DiskCallback{
     throws IOException, IllegalArgumentException, 
     IndexOutOfBoundsException
   {
+	  if (buffer.length < Disk.SECTOR_SIZE)
+		  throw new IllegalArgumentException();
+	  if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
+		  throw new IndexOutOfBoundsException();
+	  disk.startRequest(Disk.READ, readTag(), sectorNum, buffer);
   }
 
   //-------------------------------------------------------
@@ -187,10 +197,36 @@ public class ADisk implements DiskCallback{
   //-------------------------------------------------------
   public void writeSector(TransID tid, int sectorNum, byte buffer[])
     throws IllegalArgumentException, 
-    IndexOutOfBoundsException {
+    IndexOutOfBoundsException 
+    {
+	  tid.add(sectorNum, buffer);
+	  
+  }
+  
+  public void logWrite(Write w) {
+	  lock.lock();
+	  try {
+		this.disk.startRequest(Disk.WRITE, writeTag(), logHead, w.buffer);
+	} catch (IllegalArgumentException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	} catch (IOException e) {
+		// TODO Auto-generated catch block
+		e.printStackTrace();
+	}
+	  lock.unlock();
+	  return;
   }
   
   public void requestDone(DiskResult r) {
 	  //TODO: Do this when a request is completed
+  }
+  
+  private int readTag() {
+	  return 0;  //TODO: Fix
+  }
+  
+  private int writeTag() {
+	  return 0; //TODO: Fix
   }
 }
