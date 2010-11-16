@@ -1,3 +1,6 @@
+import java.util.ArrayList;
+import java.util.Iterator;
+
 /*
  * TransId.java
  *
@@ -9,15 +12,35 @@
  * (C) 2007 Mike Dahlin
  *
  */
-public class TransID{
+public class TransID implements Iterable<Action>{
 
   //
   // Implement this class
   //
+	
+	public long tid;
+	
+	private ArrayList<Action> actions;
+	
+	public TransID() {
+	}
 
-  public TransID()
-  {
-  }
-
+	@Override
+	public Iterator<Action> iterator() {
+		return actions.iterator();
+	}
   
+}
+
+abstract class Action {
+	
+}
+
+class Write extends Action{
+	
+}
+
+class Read extends Action{
+	
+
 }

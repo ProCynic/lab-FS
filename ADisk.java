@@ -19,6 +19,7 @@ public class ADisk implements DiskCallback{
   //-------------------------------------------------------
   public static final int REDO_LOG_SECTORS = 1024;
   private Disk disk;
+  private SimpleLock lock;
 
   //-------------------------------------------------------
   //
@@ -34,12 +35,21 @@ public class ADisk implements DiskCallback{
   //
   //-------------------------------------------------------
   public ADisk(boolean format) {
+	  this.lock = new SimpleLock();
 	  try {
 		  this.disk = new Disk(this, 0);
 	  } catch (FileNotFoundException e){
 		  // TODO: Real error handling
 		  System.out.println(e.toString());
 		  System.exit(-1);
+	  }
+	  if (format) {
+		  ;//TODO: Delete DISK.dat
+		  //TODO: Init Data Structures
+	  }
+	  else {
+		  ;//TODO: Init state
+		  //TODO: Read log, redo any commited transactions, update log
 	  }
   }
 
@@ -53,7 +63,7 @@ public class ADisk implements DiskCallback{
   //-------------------------------------------------------
   public int getNSectors()
   {
-    return -1; // Fixme
+    return Disk.NUM_OF_SECTORS - ADisk.REDO_LOG_SECTORS;  // Can change if we add other data structures
   } 
 
   //-------------------------------------------------------
@@ -99,8 +109,10 @@ public class ADisk implements DiskCallback{
   // 
   //-------------------------------------------------------
   public void commitTransaction(TransID tid) 
-    throws IOException, IllegalArgumentException
-  {
+    throws IOException, IllegalArgumentException {
+	  lock.lock();
+	  for (Write w : tid)
+	  lock.unlock();
   }
 
 
