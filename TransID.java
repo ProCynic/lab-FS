@@ -13,45 +13,30 @@ import java.util.Iterator;
  * (C) 2007 Mike Dahlin
  *
  */
-public class TransID implements Iterable<Write>{
+public class TransID{
 
-  //
-  // Implement this class
-  //
-	
-	public long tid;
-	
-	private ArrayList<Write> writes;
-	
-	public TransID() {
-		this.writes = new ArrayList<Write>();
+	private static long newtid = 0;
+	private static long newTid() {
+		return newtid++;
 	}
 	
-	public void add(int sectorNum, byte[] buffer) {
-		writes.add(new Write(sectorNum, buffer));
+	private long tid;
+	
+	TransID () {
+		this.tid = TransID.newTid();
 	}
-
-	@Override
-	public Iterator<Write> iterator() {
-		return writes.iterator();
+	
+	public long getTid() {
+		return this.tid;
 	}
+	
+	public boolean equals (TransID other) {
+		if (other.getTid() == this.getTid())
+			return true;
+		else
+			return false;
+	}
+	
   
 }
 
-class Write {
-	public int sectorNum;
-	public byte[] buffer;
-	
-	Write(int sectorNum, byte buffer[]) {
-		
-		if (buffer.length != Disk.SECTOR_SIZE)
-			  throw new IllegalArgumentException();
-		
-		if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
-			throw new IndexOutOfBoundsException();
-		this.sectorNum = sectorNum;
-		this.buffer = buffer;
-	}
-	
-	
-}
