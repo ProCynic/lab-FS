@@ -12,6 +12,7 @@
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.concurrent.locks.Condition;
 
 public class ADisk implements DiskCallback{
 
@@ -23,7 +24,8 @@ public class ADisk implements DiskCallback{
 	private int logTail = 0;
 	private Disk disk;
 	private SimpleLock lock;
-
+	
+	private Condition diskDone;
 	//This holds the only references to Transactions, allowing controlled gc
 	private HashMap<TransID, Transaction> transactions;
 
@@ -42,19 +44,17 @@ public class ADisk implements DiskCallback{
 	//-------------------------------------------------------
 	public ADisk(boolean format) {
 		this.lock = new SimpleLock();
+		this.diskDone = lock.newCondition();
 		try {
 			this.disk = new Disk(this, 0);
 		} catch (FileNotFoundException e){
-			// TODO: Real error handling
 			System.out.println(e.toString());
 			System.exit(-1);
 		}
 		if (format) {
 			;//TODO: Delete DISK.dat
-			//TODO: Init Data Structures
 		}
 		else {
-			;//TODO: Init state
 			//TODO: Read log, redo any commited transactions, update log
 		}
 	}
@@ -124,8 +124,12 @@ public class ADisk implements DiskCallback{
 		Transaction t = this.transactions.get(tid);
 		if (t == null)
 			throw new IllegalArgumentException();
-		for (byte[] b : t.getSectors())
-			this.disk.startRequest(Disk.WRITE, writeTag(), logHead, b);//TODO: Write b to log
+		//TODO:  Check to make sure there's enough room in log.
+		for (byte[] b : t.getSectors()) {
+			this.aTrans(logHead, b, Disk.WRITE);
+			logHead = logHead + 1 % Disk.ADISK_REDO_LOG_SECTORS;
+		}
+		//TODO: Start process to write log to disk.
 		return;
 	}
 
@@ -144,7 +148,8 @@ public class ADisk implements DiskCallback{
 	public void abortTransaction(TransID tid) 
 	throws IllegalArgumentException
 	{
-		this.transactions.put(tid, null);
+		if (this.transactions.put(tid, null) != null)
+			throw new IllegalArgumentException();
 	}
 
 
@@ -178,8 +183,19 @@ public class ADisk implements DiskCallback{
 			throw new IllegalArgumentException();
 		if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
 			throw new IndexOutOfBoundsException();
-		//TODO: Check unwritten transactions
-		disk.startRequest(Disk.READ, readTag(), sectorNum, buffer);
+		if (!this.isActive(tid))
+			throw new IllegalArgumentException();
+		Transaction t = this.transactions.get(tid);
+		boolean found = false;
+		for (Write w : t)
+			if (w.sectorNum == sectorNum) {
+				ADisk.fill(buffer, w.buffer);
+				found = true;
+			}
+		if(found)
+			return;
+		//TODO: Check committed but not written writes.
+		disk.startRequest(Disk.READ, actionTag(), sectorNum, buffer);
 	}
 
 	//-------------------------------------------------------
@@ -209,15 +225,46 @@ public class ADisk implements DiskCallback{
 
 	}
 
+	private int lastCompletedAction;
+	
 	public void requestDone(DiskResult r) {
-		//TODO: Do this when a request is completed
+		this.lastCompletedAction = r.getTag();
+		this.diskDone.signalAll();
 	}
-
-	private int readTag() {
-		return 0;  //TODO: Fix
+	
+	public static byte[] blankSector() {
+		return new byte[Disk.SECTOR_SIZE];
 	}
-
-	private int writeTag() {
-		return 0; //TODO: Fix
+	
+	private static int actiontag = Integer.MIN_VALUE;
+	private static int actionTag() {
+		if (actiontag == -1) // prevent 0 from being a tag.
+			actiontag++;
+		return actiontag++;  //Assuming that we won't cycle through all ints and still have active requests
+	}
+	
+	public boolean isActive(TransID tid) {
+		if (this.transactions.get(tid) == null)
+			return false;
+		return true;
+	}
+	
+	
+	private void aTrans(int sectorNum, byte[] buffer, int type) throws IllegalArgumentException, IOException {
+		lock.lock();
+		assert (type == Disk.READ || type == Disk.WRITE);
+		int tag = ADisk.actionTag();
+		this.disk.startRequest(type, tag, sectorNum, buffer);
+		while(this.lastCompletedAction != tag)
+			this.diskDone.awaitUninterruptibly();
+		lock.unlock();
+		return;
+	}
+	
+	private static void fill(byte[] buff1, byte[] buff2) {
+		assert (buff2.length <= buff1.length);
+		for (int i = 0; i < buff2.length; i++)
+			buff1[i] = buff2[i];
+		return;
 	}
 }
