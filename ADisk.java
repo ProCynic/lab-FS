@@ -19,6 +19,8 @@ public class ADisk implements DiskCallback{
   //-------------------------------------------------------
   public static final int REDO_LOG_SECTORS = 1024;
   private Disk disk;
+  private long logHead;
+  private long logTail;
   private SimpleLock lock;
 
   //-------------------------------------------------------
@@ -111,7 +113,7 @@ public class ADisk implements DiskCallback{
   public void commitTransaction(TransID tid) 
     throws IOException, IllegalArgumentException {
 	  lock.lock();
-	  for (Action w : tid) {
+	  for (Write w : tid) {
 		  w.apply();
 		  // TODO: Wait to finish
 	  }
