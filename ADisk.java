@@ -9,14 +9,16 @@
  * (C) 2007, 2010 Mike Dahlin
  *
  */
+import java.io.FileNotFoundException;
 import java.io.IOException;
 
-public class ADisk{
+public class ADisk implements DiskCallback{
 
   //-------------------------------------------------------
   // The size of the redo log in sectors
   //-------------------------------------------------------
   public static final int REDO_LOG_SECTORS = 1024;
+  private Disk disk;
 
   //-------------------------------------------------------
   //
@@ -31,8 +33,14 @@ public class ADisk{
   // redo any committed transactions, and reset the log.
   //
   //-------------------------------------------------------
-  public ADisk(boolean format)
-  {
+  public ADisk(boolean format) {
+	  try {
+		  this.disk = new Disk(this, 0);
+	  } catch (FileNotFoundException e){
+		  // TODO: Real error handling
+		  System.out.println(e.toString());
+		  System.exit(-1);
+	  }
   }
 
   //-------------------------------------------------------
@@ -162,9 +170,10 @@ public class ADisk{
   //-------------------------------------------------------
   public void writeSector(TransID tid, int sectorNum, byte buffer[])
     throws IllegalArgumentException, 
-    IndexOutOfBoundsException
-  {
+    IndexOutOfBoundsException {
   }
-
-
+  
+  public void requestDone(DiskResult r) {
+	  //TODO: Do this when a request is completed
+  }
 }

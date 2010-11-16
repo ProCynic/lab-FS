@@ -26,5 +26,6 @@ public class Test {
 class TestWrite implements DiskCallback{
 	public void requestDone(DiskResult d) {
 		System.out.println("Written");
+		System.exit(0);
 	}
 }
