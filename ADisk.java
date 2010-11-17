@@ -9,6 +9,7 @@
  * (C) 2007, 2010 Mike Dahlin
  *
  */
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
@@ -20,14 +21,20 @@ public class ADisk implements DiskCallback{
 	// The size of the redo log in sectors
 	//-------------------------------------------------------
 	public static final int REDO_LOG_SECTORS = 1024;
-	private int logHead = 0;
-	private int logTail = 0;
+	private Integer logHead = 0;
+	private Integer logTail = 0;
 	private Disk disk;
 	private SimpleLock lock;
 	
 	private Condition diskDone;
-	//This holds the only references to Transactions, allowing controlled gc
+	private Condition commit;
+	private Condition writeWait;
+	private boolean commitInProgress = false;
+	//This holds the only references to Transactions, allowing controlled garbage collection
 	private HashMap<TransID, Transaction> transactions;
+	
+	private int lastCompletedAction;
+
 
 	//-------------------------------------------------------
 	//
@@ -45,17 +52,25 @@ public class ADisk implements DiskCallback{
 	public ADisk(boolean format) {
 		this.lock = new SimpleLock();
 		this.diskDone = lock.newCondition();
+		this.commit = lock.newCondition();
+		this.writeWait = lock.newCondition();
 		try {
 			this.disk = new Disk(this, 0);
-		} catch (FileNotFoundException e){
+			if (format) {
+				File hdd = new File("DISK.dat");
+				hdd.delete();
+				this.disk = new Disk(this, 0);
+			}
+			else {
+				;//TODO: Recover
+			}
+			byte[] b = ADisk.blankSector();
+			this.aTrans(0, b, Disk.WRITE);
+		}catch (FileNotFoundException e) {
 			System.out.println(e.toString());
 			System.exit(-1);
-		}
-		if (format) {
-			;//TODO: Delete DISK.dat
-		}
-		else {
-			//TODO: Read log, redo any commited transactions, update log
+		}catch (IOException e) {
+			assert(false);
 		}
 	}
 
@@ -71,7 +86,7 @@ public class ADisk implements DiskCallback{
 	//-------------------------------------------------------
 	public int getNSectors()
 	{
-		return Disk.NUM_OF_SECTORS - ADisk.REDO_LOG_SECTORS;  // Can change if we add other data structures
+		return Disk.NUM_OF_SECTORS - ADisk.REDO_LOG_SECTORS - 1;  // Can change if we add other data structures
 	} 
 
 	//-------------------------------------------------------
@@ -123,15 +138,29 @@ public class ADisk implements DiskCallback{
 	//-------------------------------------------------------
 	public void commitTransaction(TransID tid) throws IOException, IllegalArgumentException {
 		lock.lock();
+		while(this.commitInProgress)
+			this.commit.awaitUninterruptibly();
+		this.commitInProgress = true;
 		Transaction t = this.transactions.get(tid);
 		if (t == null)
 			throw new IllegalArgumentException();
-		//TODO:  Check to make sure there's enough room in log.
+		
+		if (t.size() >= ADisk.REDO_LOG_SECTORS)
+			throw new IOException();
+		int tmp = logHead + t.size();
+		if (logHead < logTail && tmp >= logTail)
+			throw new IOException();
+		if (logHead > logTail && tmp >= ADisk.REDO_LOG_SECTORS && tmp % ADisk.REDO_LOG_SECTORS >= logTail)
+			throw new IOException();
+				
 		for (byte[] b : t.getSectors()) {
 			this.aTrans(logHead, b, Disk.WRITE);
 			logHead = logHead + 1 % Disk.ADISK_REDO_LOG_SECTORS;
 		}
 		//TODO: Start process to write log to disk.
+		this.commitInProgress = false;
+		this.commit.signal();
+		this.writeWait.signal();
 		lock.unlock();
 		return;
 	}
@@ -150,7 +179,6 @@ public class ADisk implements DiskCallback{
 	//-------------------------------------------------------
 	public void abortTransaction(TransID tid) throws IllegalArgumentException {
 		lock.lock();
-		//TODO: Clean this up.
 		try {
 			if (this.transactions.put(tid, null) != null)
 				throw new IllegalArgumentException();
@@ -244,11 +272,12 @@ public class ADisk implements DiskCallback{
 
 	}
 
-	private int lastCompletedAction;
-	
+
 	public void requestDone(DiskResult r) {
+		lock.lock();
 		this.lastCompletedAction = r.getTag();
 		this.diskDone.signalAll();
+		lock.unlock();
 	}
 	
 	public static byte[] blankSector() {
@@ -258,6 +287,8 @@ public class ADisk implements DiskCallback{
 	private static int actiontag = Integer.MIN_VALUE;
 	private static int actionTag() {
 		if (actiontag == -1) // prevent 0 from being a tag.
+			actiontag++;
+		if (actiontag == Integer.MAX_VALUE-1) //reserve max int.
 			actiontag++;
 		return actiontag++;  //Assuming that we won't cycle through all ints and still have active requests
 	}
@@ -269,7 +300,7 @@ public class ADisk implements DiskCallback{
 	}
 	
 	
-	private void aTrans(int sectorNum, byte[] buffer, int type) throws IllegalArgumentException, IOException {
+	public void aTrans(int sectorNum, byte[] buffer, int type) throws IllegalArgumentException, IOException {
 		lock.lock();
 		assert (type == Disk.READ || type == Disk.WRITE);
 		int tag = ADisk.actionTag();
@@ -280,10 +311,19 @@ public class ADisk implements DiskCallback{
 		return;
 	}
 	
-	private static void fill(byte[] buff1, byte[] buff2) {
+
+	public static void fill(byte[] buff1, byte[] buff2) {
 		assert (buff2.length <= buff1.length);
 		for (int i = 0; i < buff2.length; i++)
 			buff1[i] = buff2[i];
 		return;
+	}
+	
+	private void writeBack(){
+		lock.lock();
+		while(true) {
+			while (logHead == logTail)
+				this.writeWait.awaitUninterruptibly();
+		}
 	}
 }
