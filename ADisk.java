@@ -81,9 +81,11 @@ public class ADisk implements DiskCallback{
 	//-------------------------------------------------------
 	public TransID beginTransaction()
 	{
+		lock.lock();
 		TransID tid = new TransID();
 		Transaction trans = new Transaction();
 		assert (this.transactions.put(tid, trans) == null);
+		lock.unlock();
 		return tid;
 	}
 
@@ -120,7 +122,7 @@ public class ADisk implements DiskCallback{
 	// 
 	//-------------------------------------------------------
 	public void commitTransaction(TransID tid) throws IOException, IllegalArgumentException {
-
+		lock.lock();
 		Transaction t = this.transactions.get(tid);
 		if (t == null)
 			throw new IllegalArgumentException();
@@ -130,6 +132,7 @@ public class ADisk implements DiskCallback{
 			logHead = logHead + 1 % Disk.ADISK_REDO_LOG_SECTORS;
 		}
 		//TODO: Start process to write log to disk.
+		lock.unlock();
 		return;
 	}
 
@@ -145,11 +148,17 @@ public class ADisk implements DiskCallback{
 	// to an active transaction.
 	// 
 	//-------------------------------------------------------
-	public void abortTransaction(TransID tid) 
-	throws IllegalArgumentException
-	{
-		if (this.transactions.put(tid, null) != null)
-			throw new IllegalArgumentException();
+	public void abortTransaction(TransID tid) throws IllegalArgumentException {
+		lock.lock();
+		//TODO: Clean this up.
+		try {
+			if (this.transactions.put(tid, null) != null)
+				throw new IllegalArgumentException();
+		}catch (IllegalArgumentException e) {
+			throw e;
+		}finally {
+			lock.unlock();
+		}
 	}
 
 
@@ -179,23 +188,33 @@ public class ADisk implements DiskCallback{
 	throws IOException, IllegalArgumentException, 
 	IndexOutOfBoundsException
 	{
-		if (buffer.length < Disk.SECTOR_SIZE)
-			throw new IllegalArgumentException();
-		if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
-			throw new IndexOutOfBoundsException();
-		if (!this.isActive(tid))
-			throw new IllegalArgumentException();
-		Transaction t = this.transactions.get(tid);
-		boolean found = false;
-		for (Write w : t)
-			if (w.sectorNum == sectorNum) {
-				ADisk.fill(buffer, w.buffer);
-				found = true;
-			}
-		if(found)
+		lock.lock();
+		try {
+			if (buffer.length < Disk.SECTOR_SIZE)
+				throw new IllegalArgumentException();
+			if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
+				throw new IndexOutOfBoundsException();
+			if (!this.isActive(tid))
+				throw new IllegalArgumentException();
+			Transaction t = this.transactions.get(tid);
+			boolean found = false;
+			for (Write w : t)
+				if (w.sectorNum == sectorNum) {
+					ADisk.fill(buffer, w.buffer);
+					found = true;
+				}
+			if(found)
+				return;
+			//TODO: Check committed but not written writes.
+			this.aTrans(sectorNum, buffer, Disk.READ);
 			return;
-		//TODO: Check committed but not written writes.
-		disk.startRequest(Disk.READ, actionTag(), sectorNum, buffer);
+		} catch (IllegalArgumentException e) {
+			throw e;
+		}catch (IndexOutOfBoundsException e){
+			throw e;
+		}finally {
+			lock.unlock();
+		}
 	}
 
 	//-------------------------------------------------------
