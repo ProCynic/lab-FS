@@ -39,7 +39,7 @@ public class Transaction implements Iterable<Write>{
 			bytes.add(w.buffer);
 		byte[] commit = new byte[Disk.SECTOR_SIZE];
 		for (int i = 0; i < "Commit".length(); i++) {
-			commit[i] = "Commit".getBytes()[i];
+			commit[i] = "Commit".getBytes()[i]; //TODO: Change to reference to global.
 		}
 		return bytes;
 	}

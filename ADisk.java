@@ -69,7 +69,7 @@ public class ADisk implements DiskCallback{
 				this.disk = new Disk(this, 0);
 			}
 			else {
-				;//TODO: Recover
+				this.readLog();
 			}
 //			byte[] b = ADisk.blankSector();
 //			this.aTrans(0, b, Disk.WRITE);
@@ -326,6 +326,44 @@ public class ADisk implements DiskCallback{
 			if (this.writeBackQueue.isEmpty())
 				return null;
 			return this.writeBackQueue.remove(0);
+		}finally {
+			lock.unlock();
+		}
+	}
+	
+	//Read the log and shove any unfinished transactions into the write back queue.
+	private void readLog() {
+		try{
+			lock.lock();
+			//TODO: recover head, tail from ADisk.REDO_LOG_SECTORS + 1
+			TransID tid;
+			while(logTail != logHead){
+				tid = this.beginTransaction();
+				byte[] meta = ADisk.blankSector();
+				this.aTrans(logTail, meta, Disk.READ);
+				//TODO: Unseriallize meta into a list of sectorNums
+				byte[] buff = ADisk.blankSector();
+				for (int i = 0; i < secList.size(); i++){
+					this.aTrans(logTail + i + 1, buff, Disk.READ);
+					this.writeSector(tid, secList[i], buff);
+				}
+				this.aTrans(logTail + secList.size() + 1, buff, Disk.READ);
+				if (!buff.equals("Commit")) {//TODO: Change to reference to global.
+					this.abortTransaction(tid);
+					this.logHead = this.logTail;  //Will end loop and update log.
+				}
+				else {
+					this.logTail += secList.size() + 2;
+					this.writeBackQueue.add(this.transactions.get(tid));
+				}
+			}
+			//TODO: put head, tail onto disk.
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}finally {
 			lock.unlock();
 		}
