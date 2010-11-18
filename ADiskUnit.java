@@ -41,7 +41,6 @@ public class ADiskUnit {
 			e.printStackTrace();
 			fail("exception fail");
 		}
-		System.out.println("Test Passed");
 	}
 
 	@Test
@@ -50,7 +49,6 @@ public class ADiskUnit {
 		assertTrue(adisk.isActive(tid));
 		adisk.abortTransaction(tid);
 		assertFalse(adisk.isActive(tid));
-		System.out.println("Test Passed");
 	}
 
 	@Test
@@ -77,7 +75,6 @@ public class ADiskUnit {
 		}catch (Exception e) {
 			fail("exception fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	//tests pointers as well
@@ -110,7 +107,6 @@ public class ADiskUnit {
 			e.printStackTrace();
 			fail("exception fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -127,7 +123,6 @@ public class ADiskUnit {
 		}catch(IOException e) {
 			fail("Disk Fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test
@@ -148,7 +143,6 @@ public class ADiskUnit {
 			fail("Exception fail");
 		} catch (IOException e) {
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -156,7 +150,6 @@ public class ADiskUnit {
 		TransID tid = adisk.beginTransaction();
 		adisk.abortTransaction(tid);
 		adisk.abortTransaction(tid);
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -170,7 +163,6 @@ public class ADiskUnit {
 		} catch (IOException e) {
 			fail("Exception fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -185,7 +177,6 @@ public class ADiskUnit {
 		} catch (IOException e) {
 			fail("Exception Fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IndexOutOfBoundsException.class)
@@ -199,7 +190,6 @@ public class ADiskUnit {
 		} catch (IOException e) {
 			fail("Exception Fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IndexOutOfBoundsException.class)
@@ -213,7 +203,6 @@ public class ADiskUnit {
 		} catch (IOException e) {
 			fail("Exception Fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -225,7 +214,6 @@ public class ADiskUnit {
 		} catch (IndexOutOfBoundsException e) {
 			fail("Exception fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -238,7 +226,6 @@ public class ADiskUnit {
 		} catch (IndexOutOfBoundsException e) {
 			fail("Exception Fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IndexOutOfBoundsException.class)
@@ -250,7 +237,6 @@ public class ADiskUnit {
 		} catch (IllegalArgumentException e) {
 			fail("Exception Fail");
 		}
-		System.out.println("Test Passed");
 	}
 	
 	@Test(expected=IndexOutOfBoundsException.class)
@@ -262,6 +248,5 @@ public class ADiskUnit {
 		} catch (IllegalArgumentException e) {
 			fail("Exception Fail");
 		}
-		System.out.println("Test Passed");
 	}
 }
