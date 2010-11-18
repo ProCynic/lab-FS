@@ -80,8 +80,6 @@ public class ADisk implements DiskCallback{
 		}catch (FileNotFoundException e) {
 			System.out.println(e.toString());
 			System.exit(-1);
-		}catch (IOException e) {
-			assert(false);
 		}
 	}
 
@@ -381,19 +379,21 @@ public class ADisk implements DiskCallback{
 			}
 			this.writePtrs();
 		} catch (IllegalArgumentException e) {
+			System.out.println("Bad Log Pointer");
 			System.exit(-1);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			// Disk Error
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			//Inconsistant tail pointer.
-			//Was not pointing to a valid meta block
+			System.out.println("Bad Log Pointer");
 			System.exit(-1);
 		}finally {
 			lock.unlock();
 		}
 	}
 	
+	//Write the pointers to disk.
 	private void writePtrs() {
 		try {
 			lock.lock();
@@ -408,6 +408,7 @@ public class ADisk implements DiskCallback{
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			// Disk Error
 			e.printStackTrace();
 		}finally {
 			lock.unlock();
@@ -427,16 +428,16 @@ public class ADisk implements DiskCallback{
 			this.logHead = (Integer)ois.readObject();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
+			// Disk Error
 			e.printStackTrace();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Bad Log Pointer");
+			System.exit(-1);
 		}finally {
 			lock.unlock();
 		}
-		
 	}
-
+	
 	private static int actiontag = Integer.MIN_VALUE;
 	private static int actionTag() {
 		if (actiontag == -1) // prevent 0 from being a tag.
@@ -446,6 +447,7 @@ public class ADisk implements DiskCallback{
 		return actiontag++;  //Assuming that we won't cycle through all ints and still have active requests
 	}
 	
+	//See if the given tid is an active transaction
 	public boolean isActive(TransID tid) {
 		try {
 			lock.lock();
@@ -483,14 +485,16 @@ public class ADisk implements DiskCallback{
 						try {
 							aTrans(w.sectorNum, w.buffer, Disk.WRITE);
 							queuePop();
-							//TODO: Update logTail both in memory and on disk.
 						} catch (IllegalArgumentException e) {
-							assert (false);
+							System.out.println("Bad Log Pointer");
 							System.exit(-1);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
+							// Disk fail.
 							e.printStackTrace();
 						}
+					logTail += t.size();
+					writePtrs();
 				}
 						
 			}
