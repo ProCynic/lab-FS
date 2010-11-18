@@ -26,7 +26,7 @@ public class ADisk implements DiskCallback{
 	// The size of the redo log in sectors
 	//-------------------------------------------------------
 	public static final int REDO_LOG_SECTORS = 1024;
-	private static final int PTR_SECTOR = ADisk.REDO_LOG_SECTORS + 1;
+	private static final int PTR_SECTOR = ADisk.REDO_LOG_SECTORS;
 	private Integer logHead = 0;
 	private Integer logTail = 0;
 	private Disk disk;
