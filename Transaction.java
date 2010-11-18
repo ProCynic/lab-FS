@@ -5,7 +5,7 @@ import java.util.Iterator;
 
 public class Transaction implements Iterable<Write>{
 	
-	public static final byte[] COMMIT = ADisk.fill(ADisk.blankSector(), "Commit".getBytes());
+	public static final Sector COMMIT = new Sector("Commit".getBytes());
 
 	private ArrayList<Write> writes;
 
@@ -13,7 +13,7 @@ public class Transaction implements Iterable<Write>{
 		this.writes = new ArrayList<Write>();
 	}
 
-	public void add(int sectorNum, byte[] buffer) {
+	public void add(int sectorNum, byte[] buffer) throws IndexOutOfBoundsException, IllegalArgumentException{
 		if (writes.size() == Common.MAX_WRITES_PER_TRANSACTION)
 			throw new ResourceException();
 		writes.add(new Write(sectorNum, buffer));
@@ -39,7 +39,7 @@ public class Transaction implements Iterable<Write>{
 
 		for (Write w : this)
 			bytes.add(w.buffer);
-		bytes.add(Transaction.COMMIT);
+		bytes.add(Transaction.COMMIT.array);
 		return bytes;
 	}
 }
@@ -48,9 +48,9 @@ class Write {
 	public int sectorNum;
 	public byte[] buffer;
 	
-	Write(int sectorNum, byte buffer[]) {
+	Write(int sectorNum, byte buffer[]) throws IllegalArgumentException, IndexOutOfBoundsException{
 		if (sectorNum < ADisk.REDO_LOG_SECTORS + 1)
-			throw new SegFault();
+			throw new IndexOutOfBoundsException();
 		
 		if (buffer.length != Disk.SECTOR_SIZE)
 			  throw new IllegalArgumentException();

@@ -108,7 +108,10 @@ public class ADisk implements DiskCallback{
 			lock.lock();
 			TransID tid = new TransID();
 			Transaction trans = new Transaction();
-			assert (this.transactions.put(tid, trans) == null);
+			Transaction tmp;
+			tmp = this.transactions.put(tid, trans);
+			assert(tmp == null);
+			assert(this.isActive(tid));
 			return tid;
 		}finally {
 			lock.unlock();
@@ -194,7 +197,7 @@ public class ADisk implements DiskCallback{
 	public void abortTransaction(TransID tid) throws IllegalArgumentException {
 		try {
 			lock.lock();
-			if (this.transactions.put(tid, null) != null)
+			if (this.transactions.put(tid, null) == null)
 				throw new IllegalArgumentException();
 		}finally {
 			lock.unlock();
@@ -228,6 +231,7 @@ public class ADisk implements DiskCallback{
 	throws IOException, IllegalArgumentException, 
 	IndexOutOfBoundsException
 	{
+		Sector result = new Sector();
 		try {
 			lock.lock();
 			if (buffer.length < Disk.SECTOR_SIZE)
@@ -242,7 +246,7 @@ public class ADisk implements DiskCallback{
 			boolean found = false;
 			for (Write w : t)
 				if (w.sectorNum == sectorNum) {
-					ADisk.fill(buffer, w.buffer);
+					result.update(w.buffer);
 					found = true;
 				}
 			if(found){
@@ -253,17 +257,18 @@ public class ADisk implements DiskCallback{
 			for (Transaction trans : this.writeBackQueue)
 				for (Write w : trans)
 					if (w.sectorNum == sectorNum) {
-						ADisk.fill(buffer, w.buffer);  
+						result.update(w.buffer);
 						found = true;
 					}
 			if(found){
 				System.out.println("Found in Writeback"); //TODO: remove
 				return;
 			}
-			this.aTrans(sectorNum, buffer, Disk.READ);
+			this.aTrans(sectorNum, result.array, Disk.READ);
 			System.out.println("Found on Disk");  //TODO: remove
 			return;
 		}finally {
+			result.fill(buffer);
 			lock.unlock();
 		}
 	}
@@ -293,6 +298,9 @@ public class ADisk implements DiskCallback{
 	{
 		try {
 			lock.lock();
+			if(!this.isActive(tid)) 
+				throw new IllegalArgumentException();
+			
 			this.transactions.get(tid).add(sectorNum, buffer);
 		}finally {
 			lock.unlock();
@@ -340,16 +348,16 @@ public class ADisk implements DiskCallback{
 			TransID tid;
 			while(logTail != logHead){
 				tid = this.beginTransaction();
-				byte[] meta = ADisk.blankSector();
-				this.aTrans(logTail, meta, Disk.READ);
+				Sector meta = new Sector();
+				this.aTrans(logTail, meta.array, Disk.READ);
 				ArrayList<Integer> secList = new ArrayList<Integer>();
 				//TODO: Unseriallize meta into a list of sectorNums
-				byte[] buff = ADisk.blankSector();
+				Sector buff = new Sector();
 				for (int i = 0; i < secList.size(); i++){
-					this.aTrans(logTail + i + 1, buff, Disk.READ);
-					this.writeSector(tid, secList.get(i), buff);
+					this.aTrans(logTail + i + 1, buff.array, Disk.READ);
+					this.writeSector(tid, secList.get(i), buff.array);
 				}
-				this.aTrans(logTail + secList.size() + 1, buff, Disk.READ);
+				this.aTrans(logTail + secList.size() + 1, buff.array, Disk.READ);
 				if (!buff.equals("Commit")) {//TODO: Change to reference to global.
 					this.abortTransaction(tid);
 					this.logHead = this.logTail;  //Will end loop and update log.
@@ -369,10 +377,6 @@ public class ADisk implements DiskCallback{
 		}finally {
 			lock.unlock();
 		}
-	}
-	
-	public static byte[] blankSector() {
-		return new byte[Disk.SECTOR_SIZE];
 	}
 	
 	private static int actiontag = Integer.MIN_VALUE;
@@ -408,14 +412,6 @@ public class ADisk implements DiskCallback{
 		}finally {
 			lock.unlock();
 		}
-	}
-	
-
-	public static byte[] fill(byte[] buff1, byte[] buff2) {
-		assert (buff2.length <= buff1.length);
-		for (int i = 0; i < buff2.length; i++)
-			buff1[i] = buff2[i];
-		return buff1;
 	}
 	
 	//A runnable object that infinitely loops in its own thread, consuming the write-back queue.

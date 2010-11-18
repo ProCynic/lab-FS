@@ -1,42 +1,36 @@
-import java.io.IOException;
+import static org.junit.Assert.*;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
 
-public class ADiskUnit extends TestCase {
-
+public class ADiskUnit {
+	
 	ADisk adisk;
-
-	public ADiskUnit(String arg0) {
-		super(arg0);
+	
+	public ADiskUnit() {
 		this.adisk = new ADisk(true);
 	}
-
-	protected void setUp() throws Exception {
-		super.setUp();
-	}
-
-	protected void tearDown() throws Exception {
-		super.tearDown();
-	}
-
-	public void testCommitTransaction(){
+	
+	@Test
+	public void testCommitTransaction() {
 		TransID tid = adisk.beginTransaction();
+		assertTrue(adisk.isActive(tid));
 		int sectorNum = 1025;  //First available sector.
-		byte[] buffer = new byte[Disk.SECTOR_SIZE];
-		ADisk.fill(buffer, "Hello World".getBytes());
+		Sector buffer = new Sector("Hello World".getBytes());
 		try {
-			adisk.writeSector(tid, sectorNum, buffer);
+			TransID tid2 = adisk.beginTransaction();
+			adisk.writeSector(tid, sectorNum, buffer.array);
 			adisk.commitTransaction(tid);
-			byte[] buff2 = ADisk.blankSector();
-			adisk.readSector(tid, sectorNum, buff2);
-			for (int i = 0; i < Disk.SECTOR_SIZE; i++) 
-				assertEquals(buffer[i], buff2[i]);
+			Sector buff2 = new Sector();
+			adisk.readSector(tid2, sectorNum, buff2.array);
+			assertTrue(buff2.equals(buffer));
 		} catch (Exception e) {
-			fail();
-		}
+			e.printStackTrace();
+			fail("exception fail");
+		}		
 	}
 
+	@Test
 	public void testAbortTransaction() {
 		TransID tid = adisk.beginTransaction();
 		assertTrue(adisk.isActive(tid));
@@ -44,46 +38,30 @@ public class ADiskUnit extends TestCase {
 		assertFalse(adisk.isActive(tid));
 	}
 
+	@Test
 	public void testReadSector() {
+		
 		TransID tid2 = adisk.beginTransaction();
 		TransID tid1 = adisk.beginTransaction();
-		byte[] wbuffer = ADisk.blankSector();
-		byte[] rbuffer = ADisk.blankSector();
+		Sector wbuffer = new Sector("Hello World".getBytes());
+		Sector rbuffer = new Sector();
 		
 		int sectorNum = 1025;
 		
-		ADisk.fill(wbuffer, "Hello World".getBytes());
-		
-		adisk.writeSector(tid1,sectorNum, wbuffer);
+		adisk.writeSector(tid1,sectorNum, wbuffer.array);
 		try {
-			adisk.readSector(tid1, sectorNum, rbuffer);
+			adisk.readSector(tid1, sectorNum, rbuffer.array);
+			assertTrue(rbuffer.equals(wbuffer));
 			adisk.commitTransaction(tid1);
-			adisk.readSector(tid2, sectorNum, rbuffer);
+			adisk.readSector(tid2, sectorNum, rbuffer.array);
+			//We did this test a few times, and found these reads in these locations every time
+			assertTrue(rbuffer.equals(wbuffer));  //Found in writeback queue
 			Thread.sleep(2000);
-			adisk.readSector(tid2, sectorNum, rbuffer);
+			adisk.readSector(tid2, sectorNum, rbuffer.array);  //found on disk
+			assertTrue(rbuffer.equals(wbuffer));
 		}catch (Exception e) {
-			fail("Exception!");
+			fail("exception fail");
 		}
-		
 	}
 
-	public void testBlankSector() {
-		byte[] b = ADisk.blankSector();
-		assertEquals(b.length, 512);
-		for(int i = 0; i < b.length; i++)
-			assertEquals(b[i], null);
-	}
-
-	public void testIsActive() {
-		TransID tid = null;
-		assertFalse(adisk.isActive(tid));
-		tid = adisk.beginTransaction();
-		assertTrue(adisk.isActive(tid));
-	}
-	//	public TestResult run(){
-	//		setUp();
-	//		testCommitTransaction();
-	//		tearDown();
-	//		return null;
-	//	}
 }
