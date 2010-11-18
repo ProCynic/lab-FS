@@ -39,7 +39,7 @@ public class Transaction implements Iterable<Write>{
 		for (Write w : this)
 			sectorNums.add(w.sectorNum);
 		oos.writeObject(sectorNums);
-		bytes.add(buff.toByteArray());
+		bytes.add(new Sector(buff.toByteArray()).array);
 
 		for (Write w : this)
 			bytes.add(w.buffer);
