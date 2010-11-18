@@ -1,7 +1,12 @@
 
 
 default: 
-	javac -g -cp /lusr/share/opt/junit-4.5/junit-4.5.jar *.java
+	@echo "Making"
+	@javac *.java
+	
+unit:
+	@echo "BANG!"
 
 clean:
-	$(RM) *.class
+	@echo "Cleaning"
+	@rm -f *.class
