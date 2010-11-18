@@ -11,26 +11,23 @@ public class Test {
 	 */
 	public static void main(String[] args) {
 		ADisk adisk = new ADisk(true);
-		TransID tidw = adisk.beginTransaction();
-		TransID tidr = adisk.beginTransaction();
-//		assert(adisk.isActive(tid));
-//		adisk.abortTransaction(tid);
-//		assert(!adisk.isActive(tid));
+		TransID tid2 = adisk.beginTransaction();
+		TransID tid1 = adisk.beginTransaction();
+		byte[] wbuffer = ADisk.blankSector();
+		byte[] rbuffer = ADisk.blankSector();
 		
 		int sectorNum = 1025;
-		byte[] buffer = new byte[Disk.SECTOR_SIZE];
-		ADisk.fill(buffer, "Hello World".getBytes());
-		int type = Disk.WRITE;
+		
+		ADisk.fill(wbuffer, "Hello World".getBytes());
+		
+		adisk.writeSector(tid1,sectorNum, wbuffer);
 		try {
-			adisk.writeSector(tidw, sectorNum, buffer);
-			adisk.commitTransaction(tidw);
-			Thread.currentThread().sleep(2000);
-			byte[] buff2 = ADisk.blankSector();
-			adisk.readSector(tidr, sectorNum, buff2);
-			for (int i = 0; i < Disk.SECTOR_SIZE; i++) 
-				assert(buffer[i] == buff2[i]);
-		} catch (Exception e) {
-			e.printStackTrace();
+			adisk.readSector(tid1, sectorNum, rbuffer);
+			adisk.commitTransaction(tid1);
+			adisk.readSector(tid2, sectorNum, rbuffer);
+			Thread.sleep(2000);
+			adisk.readSector(tid2, sectorNum, rbuffer);
+		}catch (Exception e) {
 			assert(false);
 		}
 		System.out.println("Done.");

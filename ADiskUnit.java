@@ -1,3 +1,5 @@
+import java.io.IOException;
+
 import junit.framework.TestCase;
 
 
@@ -20,12 +22,11 @@ public class ADiskUnit extends TestCase {
 
 	public void testCommitTransaction(){
 		TransID tid = adisk.beginTransaction();
-		int sectorNum = 1025;
+		int sectorNum = 1025;  //First available sector.
 		byte[] buffer = new byte[Disk.SECTOR_SIZE];
 		ADisk.fill(buffer, "Hello World".getBytes());
-		int type = Disk.WRITE;
 		try {
-			adisk.aTrans(sectorNum, buffer, type);
+			adisk.writeSector(tid, sectorNum, buffer);
 			adisk.commitTransaction(tid);
 			byte[] buff2 = ADisk.blankSector();
 			adisk.readSector(tid, sectorNum, buff2);
@@ -44,7 +45,26 @@ public class ADiskUnit extends TestCase {
 	}
 
 	public void testReadSector() {
-		fail("Not yet implemented"); // TODO
+		TransID tid2 = adisk.beginTransaction();
+		TransID tid1 = adisk.beginTransaction();
+		byte[] wbuffer = ADisk.blankSector();
+		byte[] rbuffer = ADisk.blankSector();
+		
+		int sectorNum = 1025;
+		
+		ADisk.fill(wbuffer, "Hello World".getBytes());
+		
+		adisk.writeSector(tid1,sectorNum, wbuffer);
+		try {
+			adisk.readSector(tid1, sectorNum, rbuffer);
+			adisk.commitTransaction(tid1);
+			adisk.readSector(tid2, sectorNum, rbuffer);
+			Thread.sleep(2000);
+			adisk.readSector(tid2, sectorNum, rbuffer);
+		}catch (Exception e) {
+			fail("Exception!");
+		}
+		
 	}
 
 	public void testBlankSector() {

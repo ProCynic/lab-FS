@@ -4,6 +4,8 @@ import java.util.Iterator;
 
 
 public class Transaction implements Iterable<Write>{
+	
+	public static final byte[] COMMIT = ADisk.fill(ADisk.blankSector(), "Commit".getBytes());
 
 	private ArrayList<Write> writes;
 
@@ -13,7 +15,7 @@ public class Transaction implements Iterable<Write>{
 
 	public void add(int sectorNum, byte[] buffer) {
 		if (writes.size() == Common.MAX_WRITES_PER_TRANSACTION)
-			assert (false); //TODO:  Change to reasonable exception
+			throw new ResourceException();
 		writes.add(new Write(sectorNum, buffer));
 	}
 
@@ -37,10 +39,7 @@ public class Transaction implements Iterable<Write>{
 
 		for (Write w : this)
 			bytes.add(w.buffer);
-		byte[] commit = new byte[Disk.SECTOR_SIZE];
-		for (int i = 0; i < "Commit".length(); i++) {
-			commit[i] = "Commit".getBytes()[i]; //TODO: Change to reference to global.
-		}
+		bytes.add(Transaction.COMMIT);
 		return bytes;
 	}
 }

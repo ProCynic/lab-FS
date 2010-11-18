@@ -73,6 +73,7 @@ public class ADisk implements DiskCallback{
 			}
 //			byte[] b = ADisk.blankSector();
 //			this.aTrans(0, b, Disk.WRITE);
+			//TODO:write head and tail pointers to disk at sector right after log
 		}catch (FileNotFoundException e) {
 			System.out.println(e.toString());
 			System.exit(-1);
@@ -245,22 +246,22 @@ public class ADisk implements DiskCallback{
 					found = true;
 				}
 			if(found){
-				System.out.println("Transaction found");
+				System.out.println("Found in Transaction");  //TODO: remove
 				return;
 			}
 			//Check committed but not written writes.
 			for (Transaction trans : this.writeBackQueue)
 				for (Write w : trans)
 					if (w.sectorNum == sectorNum) {
-						ADisk.fill(buffer, w.buffer);
+						ADisk.fill(buffer, w.buffer);  
 						found = true;
 					}
 			if(found){
-				System.out.println("Writeback found");
+				System.out.println("Found in Writeback"); //TODO: remove
 				return;
 			}
 			this.aTrans(sectorNum, buffer, Disk.READ);
-			System.out.println("Disk");
+			System.out.println("Found on Disk");  //TODO: remove
 			return;
 		}finally {
 			lock.unlock();
@@ -341,11 +342,12 @@ public class ADisk implements DiskCallback{
 				tid = this.beginTransaction();
 				byte[] meta = ADisk.blankSector();
 				this.aTrans(logTail, meta, Disk.READ);
+				ArrayList<Integer> secList = new ArrayList<Integer>();
 				//TODO: Unseriallize meta into a list of sectorNums
 				byte[] buff = ADisk.blankSector();
 				for (int i = 0; i < secList.size(); i++){
 					this.aTrans(logTail + i + 1, buff, Disk.READ);
-					this.writeSector(tid, secList[i], buff);
+					this.writeSector(tid, secList.get(i), buff);
 				}
 				this.aTrans(logTail + secList.size() + 1, buff, Disk.READ);
 				if (!buff.equals("Commit")) {//TODO: Change to reference to global.
@@ -393,8 +395,8 @@ public class ADisk implements DiskCallback{
 		}
 	}
 	
-	
-	public void aTrans(int sectorNum, byte[] buffer, int type) throws IllegalArgumentException, IOException {
+	//Atomic transaction.  Start a disk action, then wait for it to complete, then return.
+	private void aTrans(int sectorNum, byte[] buffer, int type) throws IllegalArgumentException, IOException {
 		try {
 			lock.lock();
 			assert (type == Disk.READ || type == Disk.WRITE);
@@ -409,20 +411,15 @@ public class ADisk implements DiskCallback{
 	}
 	
 
-	public static void fill(byte[] buff1, byte[] buff2) {
+	public static byte[] fill(byte[] buff1, byte[] buff2) {
 		assert (buff2.length <= buff1.length);
 		for (int i = 0; i < buff2.length; i++)
 			buff1[i] = buff2[i];
-		return;
+		return buff1;
 	}
 	
+	//A runnable object that infinitely loops in its own thread, consuming the write-back queue.
 	class WriteBack implements Runnable {
-		
-		
-		WriteBack() {
-			
-		}
-		
 		@Override
 		public void run() {
 			Transaction t;
@@ -432,6 +429,7 @@ public class ADisk implements DiskCallback{
 						try {
 							aTrans(w.sectorNum, w.buffer, Disk.WRITE);
 							queuePop();
+							//TODO: Update logTail both in memory and on disk.
 						} catch (IllegalArgumentException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
