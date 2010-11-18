@@ -9,9 +9,13 @@
  * (C) 2007, 2010 Mike Dahlin
  *
  */
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.locks.Condition;
@@ -22,6 +26,7 @@ public class ADisk implements DiskCallback{
 	// The size of the redo log in sectors
 	//-------------------------------------------------------
 	public static final int REDO_LOG_SECTORS = 1024;
+	private static final int PTR_SECTOR = ADisk.REDO_LOG_SECTORS + 1;
 	private Integer logHead = 0;
 	private Integer logTail = 0;
 	private Disk disk;
@@ -71,9 +76,7 @@ public class ADisk implements DiskCallback{
 			else {
 				this.readLog();
 			}
-//			byte[] b = ADisk.blankSector();
-//			this.aTrans(0, b, Disk.WRITE);
-			//TODO:write head and tail pointers to disk at sector right after log
+			this.writePtrs();
 		}catch (FileNotFoundException e) {
 			System.out.println(e.toString());
 			System.exit(-1);
@@ -81,6 +84,10 @@ public class ADisk implements DiskCallback{
 			assert(false);
 		}
 	}
+
+
+
+
 
 
 
@@ -317,7 +324,8 @@ public class ADisk implements DiskCallback{
 			lock.unlock();
 		}
 	}
-	
+	// Return first head of writeback queue
+	// Uses proper locks.
 	public Transaction queueFront() {
 		try{
 			lock.lock();
@@ -329,6 +337,8 @@ public class ADisk implements DiskCallback{
 		}
 	}
 	
+	// Remove and return first head of writeback queue
+	// Uses proper locks.
 	public Transaction queuePop() {
 		try{
 			lock.lock();
@@ -341,24 +351,26 @@ public class ADisk implements DiskCallback{
 	}
 	
 	//Read the log and shove any unfinished transactions into the write back queue.
+	@SuppressWarnings("unchecked")
 	private void readLog() {
 		try{
 			lock.lock();
-			//TODO: recover head, tail from ADisk.REDO_LOG_SECTORS + 1
+			this.readPtrs();
 			TransID tid;
 			while(logTail != logHead){
 				tid = this.beginTransaction();
 				Sector meta = new Sector();
 				this.aTrans(logTail, meta.array, Disk.READ);
-				ArrayList<Integer> secList = new ArrayList<Integer>();
-				//TODO: Unseriallize meta into a list of sectorNums
+				ByteArrayInputStream in = new ByteArrayInputStream(meta.array);
+				ObjectInputStream ois = new ObjectInputStream(in);
+				ArrayList<Integer> secList  = (ArrayList<Integer>)ois.readObject();  //Pretty sure this works
 				Sector buff = new Sector();
 				for (int i = 0; i < secList.size(); i++){
 					this.aTrans(logTail + i + 1, buff.array, Disk.READ);
 					this.writeSector(tid, secList.get(i), buff.array);
 				}
 				this.aTrans(logTail + secList.size() + 1, buff.array, Disk.READ);
-				if (!buff.equals("Commit")) {//TODO: Change to reference to global.
+				if (!buff.equals(Transaction.COMMIT)) {
 					this.abortTransaction(tid);
 					this.logHead = this.logTail;  //Will end loop and update log.
 				}
@@ -367,18 +379,64 @@ public class ADisk implements DiskCallback{
 					this.writeBackQueue.add(this.transactions.get(tid));
 				}
 			}
-			//TODO: put head, tail onto disk.
+			this.writePtrs();
 		} catch (IllegalArgumentException e) {
+			System.exit(-1);
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			//Inconsistant tail pointer.
+			//Was not pointing to a valid meta block
+			System.exit(-1);
+		}finally {
+			lock.unlock();
+		}
+	}
+	
+	private void writePtrs() {
+		try {
+			lock.lock();
+			ByteArrayOutputStream buff = new ByteArrayOutputStream(Disk.SECTOR_SIZE);
+			ObjectOutputStream oos = new ObjectOutputStream(buff);
+			oos.writeObject(logTail);
+			oos.writeObject(logHead);
+			
+			Sector ptrsector = new Sector(buff.toByteArray());
+			
+			this.aTrans(ADisk.PTR_SECTOR, ptrsector.array, Disk.WRITE);
+			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}finally {
 			lock.unlock();
 		}
+		
 	}
 	
+	//Read the pointers off of disk
+	private void readPtrs() {
+		try {
+			lock.lock();
+			Sector buff = new Sector();
+			this.aTrans(ADisk.PTR_SECTOR, buff.array, Disk.READ);
+			ByteArrayInputStream in = new ByteArrayInputStream(buff.array);
+			ObjectInputStream ois = new ObjectInputStream(in);
+			this.logTail = (Integer)ois.readObject();
+			this.logHead = (Integer)ois.readObject();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}finally {
+			lock.unlock();
+		}
+		
+	}
+
 	private static int actiontag = Integer.MIN_VALUE;
 	private static int actionTag() {
 		if (actiontag == -1) // prevent 0 from being a tag.
@@ -427,13 +485,12 @@ public class ADisk implements DiskCallback{
 							queuePop();
 							//TODO: Update logTail both in memory and on disk.
 						} catch (IllegalArgumentException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
+							assert (false);
+							System.exit(-1);
 						} catch (IOException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
-					//TODO:Remove t from queue
 				}
 						
 			}

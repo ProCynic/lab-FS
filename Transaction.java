@@ -1,4 +1,6 @@
-import java.nio.ByteBuffer;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 
@@ -28,14 +30,16 @@ public class Transaction implements Iterable<Write>{
 		return this.writes.size() + 2;
 	}
 	
-	public ArrayList<byte[]>getSectors() {
+	public ArrayList<byte[]>getSectors() throws IOException {
 		ArrayList<byte[]> bytes = new ArrayList<byte[]>();
-		ByteBuffer b = ByteBuffer.allocate(Disk.SECTOR_SIZE);
-		b.put("Transaction Metadata".getBytes());  
+		ByteArrayOutputStream buff = new ByteArrayOutputStream(Disk.SECTOR_SIZE);
+		ObjectOutputStream oos = new ObjectOutputStream(buff);		
+		ArrayList<Integer> sectorNums = new ArrayList<Integer>();
 		
 		for (Write w : this)
-			b.putInt(w.sectorNum);
-		bytes.add(b.array());
+			sectorNums.add(w.sectorNum);
+		oos.writeObject(sectorNums);
+		bytes.add(buff.toByteArray());
 
 		for (Write w : this)
 			bytes.add(w.buffer);
@@ -59,12 +63,5 @@ class Write {
 			throw new IndexOutOfBoundsException();
 		this.sectorNum = sectorNum;
 		this.buffer = buffer;
-	}
-}
-
-@SuppressWarnings("serial")
-class SegFault extends RuntimeException {
-	SegFault() {
-		//TODO: Maybe do something with this
 	}
 }

@@ -63,5 +63,22 @@ public class ADiskUnit {
 			fail("exception fail");
 		}
 	}
+	
+	@Test
+	public void testReadLog() {
+		//TODO: Implement
+		fail("Not Implemented");
+	}
 
+	@Test
+	public void testReadPtrs() {
+		//TODO: Implement
+		fail("Not Implemented");
+	}
+	
+	@Test
+	public void testWritePtrs() {
+		//TODO: Implement
+		fail("Not Implemented");
+	}
 }
