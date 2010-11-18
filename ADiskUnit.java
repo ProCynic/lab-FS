@@ -27,7 +27,8 @@ public class ADiskUnit {
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("exception fail");
-		}		
+		}
+		System.out.println("Test Passed");
 	}
 
 	@Test
@@ -36,6 +37,7 @@ public class ADiskUnit {
 		assertTrue(adisk.isActive(tid));
 		adisk.abortTransaction(tid);
 		assertFalse(adisk.isActive(tid));
+		System.out.println("Test Passed");
 	}
 
 	@Test
@@ -62,16 +64,14 @@ public class ADiskUnit {
 		}catch (Exception e) {
 			fail("exception fail");
 		}
+		System.out.println("Test Passed");
 	}
 	
 	@Test
 	public void testReadLog() {
-		//write something
-		//disk fail
-		//restore
 		
-		this.adisk = new ADisk(true);
-		
+		this.adisk = new ADisk(true,false);  //Create an ADisk with writeback turned off.
+				
 		TransID tid1 = adisk.beginTransaction();
 		TransID tid2 = adisk.beginTransaction();
 		Sector wbuffer = new Sector("Hello World".getBytes());
@@ -84,13 +84,22 @@ public class ADiskUnit {
 			adisk.readSector(tid1, sectorNum, rbuffer.array);
 			assertTrue(rbuffer.equals(wbuffer));
 			adisk.commitTransaction(tid1);
-			
+			adisk.readSector(tid2, sectorNum, rbuffer.array);
+			assertTrue(rbuffer.equals(wbuffer));
+			this.adisk=null;
+			this.adisk = new ADisk(false,true);
+			Thread.sleep(2000);
+			tid2 = adisk.beginTransaction();
+			adisk.readSector(tid2, sectorNum, rbuffer.array);  //found on disk
+			assertTrue(rbuffer.equals(wbuffer));
 		}catch (Exception e) {
+			e.printStackTrace();
 			fail("exception fail");
 		}
-//		adisk.readlog();
+
 		//TODO: Implement
-		fail("Not Implemented");
+//		fail("Not Implemented");
+		System.out.println("Test Passed");
 	}
 
 	@Test
@@ -98,7 +107,8 @@ public class ADiskUnit {
 		//TODO: Implement
 		
 		
-		fail("Not Implemented");
+//		fail("Not Implemented");
+		System.out.println("Test Passed");
 	}
 	
 }

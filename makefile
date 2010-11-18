@@ -5,7 +5,7 @@ default:
 	@javac *.java
 	
 unit:
-	@echo "BANG!"
+	@java org.junit.runner.JUnitCore ADiskUnit
 
 clean:
 	@echo "Cleaning"

@@ -62,6 +62,6 @@ class Write {
 		if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
 			throw new IndexOutOfBoundsException();
 		this.sectorNum = sectorNum;
-		this.buffer = buffer;
+		this.buffer = buffer.clone();
 	}
 }

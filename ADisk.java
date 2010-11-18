@@ -58,14 +58,23 @@ public class ADisk implements DiskCallback{
 	// redo any committed transactions, and reset the log.
 	//
 	//-------------------------------------------------------
+	
+	
 	public ADisk(boolean format) {
+		this(format, true);
+	}
+	
+	public ADisk(boolean format, boolean writeBack) {
+		
 		this.lock = new SimpleLock();
 		this.diskDone = lock.newCondition();
 		this.commit = lock.newCondition();
 		this.writeBackQueue = new ArrayList<Transaction>();
 		this.transactions = new HashMap<TransID, Transaction>();
-		this.writerThread = new Thread(new WriteBack());
-		this.writerThread.start();
+		if(writeBack) {
+			this.writerThread = new Thread(new WriteBack());
+			this.writerThread.start();
+		}
 		try {
 			this.disk = new Disk(this, 0);
 			if (format) {
@@ -177,6 +186,7 @@ public class ADisk implements DiskCallback{
 				this.aTrans(logHead, b, Disk.WRITE);
 				logHead = logHead + 1 % Disk.ADISK_REDO_LOG_SECTORS;
 			}
+			this.writePtrs();
 			this.writeBackQueue.add(t);
 			this.commitInProgress = false;
 			this.commit.signal();
@@ -255,7 +265,7 @@ public class ADisk implements DiskCallback{
 					found = true;
 				}
 			if(found){
-				System.out.println("Found in Transaction");  //TODO: remove
+//				System.out.println("Found in Transaction");  //TODO: remove
 				return;
 			}
 			//Check committed but not written writes.
@@ -266,11 +276,11 @@ public class ADisk implements DiskCallback{
 						found = true;
 					}
 			if(found){
-				System.out.println("Found in Writeback"); //TODO: remove
+//				System.out.println("Found in Writeback"); //TODO: remove
 				return;
 			}
 			this.aTrans(sectorNum, result.array, Disk.READ);
-			System.out.println("Found on Disk");  //TODO: remove
+//			System.out.println("Found on Disk");  //TODO: remove
 			return;
 		}finally {
 			result.fill(buffer);
@@ -355,7 +365,7 @@ public class ADisk implements DiskCallback{
 			lock.lock();
 			this.readPtrs();
 			TransID tid;
-			while(logTail != logHead){
+			while(!logTail.equals(logHead)){
 				tid = this.beginTransaction();
 				Sector meta = new Sector();
 				this.aTrans(logTail, meta.array, Disk.READ);
@@ -367,7 +377,7 @@ public class ADisk implements DiskCallback{
 					this.aTrans(logTail + i + 1, buff.array, Disk.READ);
 					this.writeSector(tid, secList.get(i), buff.array);
 				}
-				this.aTrans(logTail + secList.size() + 1, buff.array, Disk.READ);
+				this.aTrans(logTail + secList.size()+1, buff.array, Disk.READ);
 				if (!buff.equals(Transaction.COMMIT)) {
 					this.abortTransaction(tid);
 					this.logHead = this.logTail;  //Will end loop and update log.
