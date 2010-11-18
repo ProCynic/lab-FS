@@ -66,19 +66,39 @@ public class ADiskUnit {
 	
 	@Test
 	public void testReadLog() {
+		//write something
+		//disk fail
+		//restore
+		
+		this.adisk = new ADisk(true);
+		
+		TransID tid1 = adisk.beginTransaction();
+		TransID tid2 = adisk.beginTransaction();
+		Sector wbuffer = new Sector("Hello World".getBytes());
+		Sector rbuffer = new Sector();
+		
+		int sectorNum = 1025;
+		
+		adisk.writeSector(tid1,sectorNum, wbuffer.array);
+		try {
+			adisk.readSector(tid1, sectorNum, rbuffer.array);
+			assertTrue(rbuffer.equals(wbuffer));
+			adisk.commitTransaction(tid1);
+			
+		}catch (Exception e) {
+			fail("exception fail");
+		}
+//		adisk.readlog();
 		//TODO: Implement
 		fail("Not Implemented");
 	}
 
 	@Test
-	public void testReadPtrs() {
+	public void testReadandWritePtrs() {
 		//TODO: Implement
+		
+		
 		fail("Not Implemented");
 	}
 	
-	@Test
-	public void testWritePtrs() {
-		//TODO: Implement
-		fail("Not Implemented");
-	}
 }
