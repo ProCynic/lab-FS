@@ -37,11 +37,14 @@ public class PTree{
 	private ADisk adisk;
 
 
+	private SimpleLock lock;
+	
 	public PTree(boolean doFormat)
 	{
 		this.adisk = new ADisk(doFormat);
 		this.roots = new TNode[PTree.MAX_TREES];
 		this.readRoots();
+		this.lock = new SimpleLock();
 	}
 
 
@@ -62,11 +65,40 @@ public class PTree{
 		this.adisk.abortTransaction(xid);
 	}
 
+	/**helper method
+	**/
+	//does this need to mutex??
+	public int findNextTNum(){
+			for(int i=0; i<PTree.MAX_TREES; i++){
+				if(this.roots[i]==null)
+					return i;
+			}
+			return -1;//unable to find a TNum
+	}
 
 	public int createTree(TransID xid) 
 	throws IOException, IllegalArgumentException, ResourceException
 	{
-		return -1;
+		int newTNum = -1;
+		try{
+		lock.lock();		
+		//get next available TNum
+		newTNum = findNextTNum();
+		
+		//create tree
+		this.roots[newTNum] = new TNode(newTNum);
+		
+//		public void writeSector(TransID tid, int sectorNum, byte buffer[])
+		//allocate data structures into byte[]??
+		byte[] buffer = null;
+		
+		//write to disk??
+		this.adisk.writeSector(xid,2,buffer);
+		}
+		finally{
+			lock.unlock();
+		}
+		return newTNum;		
 	}
 
 	public void deleteTree(TransID xid, int tnum) 
