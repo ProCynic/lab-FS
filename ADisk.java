@@ -26,8 +26,8 @@ public class ADisk implements DiskCallback{
 	// The size of the redo log in sectors
 	//-------------------------------------------------------
 	public static final int REDO_LOG_SECTORS = 1024;
-	private static final int PTR_SECTOR = ADisk.REDO_LOG_SECTORS;
-	private Integer logHead = REDO_LOG_SECTORS - 1;
+	private static final int PTR_SECTOR = REDO_LOG_SECTORS - 2;
+	private Integer logHead = REDO_LOG_SECTORS - 1;  //Log goes at the top
 	private Integer logTail = REDO_LOG_SECTORS - 1;
 	private Disk disk;
 	private SimpleLock lock;
@@ -36,7 +36,8 @@ public class ADisk implements DiskCallback{
 	private Condition commit;
 //	private Condition writeQueue;
 	private boolean commitInProgress = false;
-	//This holds the only references to Transactions, allowing controlled garbage collection
+	
+	//These hold the only references to Transactions, allowing controlled garbage collection
 	private HashMap<TransID, Transaction> transactions;
 	private ArrayList<Transaction> writeBackQueue;
 	
@@ -106,6 +107,8 @@ public class ADisk implements DiskCallback{
 	// number will be smaller than Disk.NUM_OF_SECTORS.
 	//
 	//-------------------------------------------------------
+	
+	//Should be static.
 	public int getNSectors()
 	{
 		return Disk.NUM_OF_SECTORS - ADisk.REDO_LOG_SECTORS - 1;  // Can change if we add other data structures
@@ -176,12 +179,15 @@ public class ADisk implements DiskCallback{
 			
 			if (t.size() >= ADisk.REDO_LOG_SECTORS)
 				throw new IOException();
+			
+			//Figure out if the head will pass the tail.
 			int tmp = logHead + t.size();
 			if (logHead < logTail && tmp >= logTail)
 				throw new IOException();
 			if (logHead > logTail && tmp >= ADisk.REDO_LOG_SECTORS && tmp % ADisk.REDO_LOG_SECTORS >= logTail)
 				throw new IOException();
-					
+			
+			//write the sectors to the log
 			for (byte[] b : t.getSectors()) {
 				this.aTrans(logHead, b, Disk.WRITE);
 				logHead = logHead + 1 % Disk.ADISK_REDO_LOG_SECTORS;
