@@ -29,25 +29,30 @@ public class PTree{
   public static final int TNODE_POINTERS = 8;
   public static final int BLOCK_SIZE_BYTES = 1024;
   public static final int POINTERS_PER_INTERNAL_NODE = 256;
+  
+  private ADisk adisk;
 
 
   public PTree(boolean doFormat)
   {
+	  this.adisk = new ADisk(doFormat);
   }
 
   public TransID beginTrans()
   {
-    return null;
+    return this.adisk.beginTransaction();
   }
 
   public void commitTrans(TransID xid) 
     throws IOException, IllegalArgumentException
   {
+	  this.adisk.commitTransaction(xid);
   }
 
   public void abortTrans(TransID xid) 
     throws IOException, IllegalArgumentException
   {
+	  this.adisk.abortTransaction(xid);
   }
 
 
