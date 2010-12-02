@@ -38,7 +38,6 @@ public class PTree{
 	private static final int ROOTS_SECTOR = 0; // TODO: set to adisk max sectors - TNode.TNODE_SIZE * MAX_TREES round up to nearest sector.
 
 
-//	private TNode[] roots;
 	private ADisk adisk;
 
 
@@ -48,9 +47,7 @@ public class PTree{
 	public PTree(boolean doFormat)
 	{
 		this.adisk = new ADisk(doFormat);
-//		this.roots = new TNode[PTree.MAX_TREES];
 		TransID tid = this.adisk.beginTransaction();
-//		this.readRoots(tid);
 		try {
 			this.adisk.commitTransaction(tid);
 		} catch (IllegalArgumentException e) {
@@ -106,8 +103,10 @@ public class PTree{
 		int newTNum = -1;
 		try{
 		lock.lock();		
+		
 		//get next available TNum
 		newTNum = findNextTNum();
+		
 		//create tree
 		writeRoot(xid, newTNum, new TNode(newTNum));
 		}
@@ -144,13 +143,18 @@ public class PTree{
 	public void readTreeMetadata(TransID xid, int tnum, byte buffer[])
 	throws IOException, IllegalArgumentException
 	{
-		buffer = readRoot(xid, tnum).metadata;
+		assert (buffer.length <= METADATA_SIZE);
+		byte[] metadata = readRoot(xid, tnum).metadata;
+		fill(metadata, buffer);
+		
 	}
 
 
 	public void writeTreeMetadata(TransID xid, int tnum, byte buffer[])
 	throws IOException, IllegalArgumentException
 	{
+		assert buffer.length <= METADATA_SIZE;
+		fill(buffer,readRoot(xid, tnum).metadata);
 	}
 
 	public int getParam(int param)
@@ -163,59 +167,22 @@ public class PTree{
 		return null;  //TODO: Implement
 	}
 	
-//	private void readRoots(TransID tid) {
-//		try {
-//			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(readSectors(ROOTS_SECTOR, this.adisk.getNSectors())));
-//			for(TNode t : this.roots)  //TODO: Can you write to t and have roots reflect it?
-//				t = (TNode)ois.readObject();
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (ClassNotFoundException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		
-//	}
 
-//	private void writeRoots(TransID tid, int tnum, TNode obj) {
-//		this.roots[tnum] = obj;
-//		ByteArrayOutputStream out = new ByteArrayOutputStream();
-//		try {
-//			ObjectOutputStream oos = new ObjectOutputStream(out);
-//			for(TNode t : this.roots)
-//				oos.writeObject(t);
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//		byte[][] sectors = sectorize(out.toByteArray());
-//		int sectornum = ROOTS_SECTOR;
-//		try {
-//			for (byte[] sector : sectors) {
-//				this.adisk.writeSector(tid, sectornum, sector);
-//				sectornum++;
-//			}
-//		} catch (IllegalArgumentException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		} catch (IndexOutOfBoundsException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-//	}
-	
 	private TNode readRoot(TransID tid, int tnum) throws IOException {
 		int sectornum = findSector(tnum);
 		ArrayList<TNode> nodes = readRootSector(tid, sectornum);
-		//TODO: figure out which node is the one you want.
-		return null; //TODO: return nodes[something];
+		for (TNode n : nodes)
+			if(n.TNum == tnum)
+				return n;
+		return null;
 	}
 	
 	private void writeRoot(TransID tid, int tnum, TNode obj) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
 		int sectornum = findSector(tnum);
 		ArrayList<TNode> nodes = readRootSector(tid, sectornum);
-		//TODO: update nodes with the new obj
+		for (int n = 0; n < nodes.size(); n++)
+			if(nodes.get(n).TNum == tnum)
+				nodes.set(n,obj);
 		writeRootSector(tid, sectornum, nodes);
 	}
 	
@@ -253,6 +220,15 @@ public class PTree{
 	private int findSector(int TNum){
 		
 		return 0; //TODO: Implement
+	}
+	
+	private void fill(byte[] src, byte[] dest) {
+		assert (dest.length >= src.length);
+		int i;
+		for(i = 0; i < src.length; i++)
+			dest[i] = src[i];
+		for(i = i; i < dest.length; i++)
+			dest[i] = (byte) 0;
 	}
 
 }
