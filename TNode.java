@@ -1,5 +1,9 @@
 
 public class TNode extends PointerNode {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3601724349004752290L;
 	byte[] metadata;
 	int treeHeight;
 	int TNum;
@@ -12,10 +16,5 @@ public class TNode extends PointerNode {
 		this.treeHeight = 0;
 	}
 
-	@Override
-	public byte[] getBytes() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 }

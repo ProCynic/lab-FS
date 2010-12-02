@@ -8,8 +8,14 @@
  *
  */
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.EOFException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class PTree{
 	public static final int METADATA_SIZE = 64;
@@ -30,15 +36,16 @@ public class PTree{
 	public static final int BLOCK_SIZE_BYTES = 1024;
 	public static final int POINTERS_PER_INTERNAL_NODE = 256;
 	
-	private static final int ROOTS_SECTORS = 0; // TODO: set to TNode.TNODE_SIZE * MAX_TREES round up to nearest sector.
+	private static final int ROOTS_SECTOR = 0; // TODO: set to adisk max sectors - TNode.TNODE_SIZE * MAX_TREES round up to nearest sector.
 
 
 	private TNode[] roots;
 	private ADisk adisk;
 
 
+
 	private SimpleLock lock;
-	
+
 	public PTree(boolean doFormat)
 	{
 		this.adisk = new ADisk(doFormat);
@@ -105,7 +112,7 @@ public class PTree{
 	throws IOException, IllegalArgumentException
 	{
 		//TODO: Delete tree from disk.
-		this.updateRoots(tnum, null);
+		this.writeRoots(tnum, null);
 	}
 
 
@@ -142,12 +149,58 @@ public class PTree{
 		return -1;
 	}
 	
+	private byte[] readSectors(int start, int finish) {
+		return null;  //TODO: Implement
+	}
+	
 	private void readRoots() {
-		// TODO Auto-generated method stub
+		try {
+			ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(readSectors(ROOTS_SECTOR, this.adisk.getNSectors())));
+			for(TNode t : this.roots)  //TODO: Can you write to t and have roots reflect it?
+				t = (TNode)ois.readObject();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 	}
 
-	private void updateRoots(int tnum, Object object) {
-		;// TODO Auto-generated method stub
+	private void writeRoots(int tnum, TNode obj) {
+		this.roots[tnum] = obj;
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		try {
+			ObjectOutputStream oos = new ObjectOutputStream(out);
+			for(TNode t : this.roots)
+				oos.writeObject(t);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		byte[][] sectors = sectorize(out.toByteArray());
+		TransID tid = this.adisk.beginTransaction();
+		int sectornum = ROOTS_SECTOR;
+		try {
+			for (byte[] sector : sectors) {
+				this.adisk.writeSector(tid, sectornum, sector);
+				sectornum++;
+			}
+		} catch (IllegalArgumentException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IndexOutOfBoundsException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+
+	private byte[][] sectorize(byte[] byteArray) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 

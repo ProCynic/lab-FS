@@ -1,10 +1,11 @@
+import java.io.Serializable;
 
-public abstract class Node {
+
+public abstract class Node implements Serializable{
 	
 
 	public Node() {
 	}
-	abstract public byte[] getBytes();
 	abstract public void write(byte[] block);
 
 }
