@@ -1,5 +1,8 @@
 
 public abstract class PointerNode extends Node {
+	/**
+	 * 
+	 */
 	Node[] pointers;
 	
 	public PointerNode() {

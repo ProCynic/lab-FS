@@ -1,6 +1,10 @@
 
 public class Leaf extends Node {
 	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 4069955652884432367L;
 	byte[] buffer;
 
 	public Leaf(byte[] block) {
@@ -8,11 +12,6 @@ public class Leaf extends Node {
 		this.write(block);
 	}
 
-	@Override
-	public byte[] getBytes() {
-		// TODO Auto-generated method stub
-		return null;
-	}
 
 	@Override
 	public void write(byte[] block) {
