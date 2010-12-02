@@ -27,8 +27,8 @@ public class ADisk implements DiskCallback{
 	//-------------------------------------------------------
 	public static final int REDO_LOG_SECTORS = 1024;
 	private static final int PTR_SECTOR = ADisk.REDO_LOG_SECTORS;
-	private Integer logHead = 0;
-	private Integer logTail = 0;
+	private Integer logHead = REDO_LOG_SECTORS - 1;
+	private Integer logTail = REDO_LOG_SECTORS - 1;
 	private Disk disk;
 	private SimpleLock lock;
 	
@@ -251,7 +251,7 @@ public class ADisk implements DiskCallback{
 			lock.lock();
 			if (buffer.length < Disk.SECTOR_SIZE)
 				throw new IllegalArgumentException();
-			if (sectorNum < ADisk.REDO_LOG_SECTORS || sectorNum >= Disk.NUM_OF_SECTORS)
+			if (sectorNum < 0 || sectorNum >= this.getNSectors())
 				throw new IndexOutOfBoundsException();
 			if (!this.isActive(tid))
 				throw new IllegalArgumentException();

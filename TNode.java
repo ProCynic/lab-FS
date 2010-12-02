@@ -1,9 +1,21 @@
 
-public class TNode {
+public class TNode extends PointerNode {
+	byte[] metadata;
+	int treeHeight;
+	int TNum;
+	public static final int TNODE_SIZE = 0; //TODO:  Set to actual size
 	
-	TNode[] pointers;
-	public TNode() {
-		this.pointers = new TNode[PTree.TNODE_POINTERS];
+	public TNode(int tnum) {
+		this.metadata = new byte[PTree.METADATA_SIZE];
+		this.pointers = new Node[PTree.TNODE_POINTERS];
+		this.TNum = tnum;
+		this.treeHeight = 0;
+	}
+
+	@Override
+	public byte[] getBytes() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

@@ -12,93 +12,112 @@ import java.io.IOException;
 import java.io.EOFException;
 
 public class PTree{
-  public static final int METADATA_SIZE = 64;
-  public static final int MAX_TREES = 512;
-  public static final int MAX_BLOCK_ID = Integer.MAX_VALUE; 
+	public static final int METADATA_SIZE = 64;
+	public static final int MAX_TREES = 512;
+	public static final int MAX_BLOCK_ID = Integer.MAX_VALUE; 
 
-  //
-  // Arguments to getParam
-  //
-  public static final int ASK_FREE_SPACE = 997;
-  public static final int ASK_MAX_TREES = 13425;
-  public static final int ASK_FREE_TREES = 23421;
+	//
+	// Arguments to getParam
+	//
+	public static final int ASK_FREE_SPACE = 997;
+	public static final int ASK_MAX_TREES = 13425;
+	public static final int ASK_FREE_TREES = 23421;
 
-  //
-  // TNode structure
-  //
-  public static final int TNODE_POINTERS = 8;
-  public static final int BLOCK_SIZE_BYTES = 1024;
-  public static final int POINTERS_PER_INTERNAL_NODE = 256;
-  
-  private ADisk adisk;
-
-
-  public PTree(boolean doFormat)
-  {
-	  this.adisk = new ADisk(doFormat);
-  }
-
-  public TransID beginTrans()
-  {
-    return this.adisk.beginTransaction();
-  }
-
-  public void commitTrans(TransID xid) 
-    throws IOException, IllegalArgumentException
-  {
-	  this.adisk.commitTransaction(xid);
-  }
-
-  public void abortTrans(TransID xid) 
-    throws IOException, IllegalArgumentException
-  {
-	  this.adisk.abortTransaction(xid);
-  }
+	//
+	// TNode structure
+	//
+	public static final int TNODE_POINTERS = 8;
+	public static final int BLOCK_SIZE_BYTES = 1024;
+	public static final int POINTERS_PER_INTERNAL_NODE = 256;
+	
+	private static final int ROOTS_SECTORS = 0; // TODO: set to TNode.TNODE_SIZE * MAX_TREES round up to nearest sector.
 
 
-  public int createTree(TransID xid) 
-    throws IOException, IllegalArgumentException, ResourceException
-  {
-    return -1;
-  }
-
-  public void deleteTree(TransID xid, int tnum) 
-    throws IOException, IllegalArgumentException
-  {
-  }
-
-  public void getMaxDataBlockId(TransID xid, int tnum)
-    throws IOException, IllegalArgumentException
-  {
-  }
-
-  public void readData(TransID xid, int tnum, int blockId, byte buffer[])
-    throws IOException, IllegalArgumentException
-  {
-  }
+	private TNode[] roots;
+	private ADisk adisk;
 
 
-  public void writeData(TransID xid, int tnum, int blockId, byte buffer[])
-    throws IOException, IllegalArgumentException
-  {
-  }
-
-  public void readTreeMetadata(TransID xid, int tnum, byte buffer[])
-    throws IOException, IllegalArgumentException
-  {
-  }
+	public PTree(boolean doFormat)
+	{
+		this.adisk = new ADisk(doFormat);
+		this.roots = new TNode[PTree.MAX_TREES];
+		this.readRoots();
+	}
 
 
-  public void writeTreeMetadata(TransID xid, int tnum, byte buffer[])
-    throws IOException, IllegalArgumentException
-  {
-  }
+	public TransID beginTrans()
+	{
+		return this.adisk.beginTransaction();
+	}
 
-  public int getParam(int param)
-    throws IOException, IllegalArgumentException
-  {
-    return -1;
-  }
+	public void commitTrans(TransID xid) 
+	throws IOException, IllegalArgumentException
+	{
+		this.adisk.commitTransaction(xid);
+	}
 
-  
+	public void abortTrans(TransID xid) 
+	throws IOException, IllegalArgumentException
+	{
+		this.adisk.abortTransaction(xid);
+	}
+
+
+	public int createTree(TransID xid) 
+	throws IOException, IllegalArgumentException, ResourceException
+	{
+		return -1;
+	}
+
+	public void deleteTree(TransID xid, int tnum) 
+	throws IOException, IllegalArgumentException
+	{
+		//TODO: Delete tree from disk.
+		this.updateRoots(tnum, null);
+	}
+
+
+	public void getMaxDataBlockId(TransID xid, int tnum)
+	throws IOException, IllegalArgumentException
+	{
+	}
+
+	public void readData(TransID xid, int tnum, int blockId, byte buffer[])
+	throws IOException, IllegalArgumentException
+	{
+	}
+
+
+	public void writeData(TransID xid, int tnum, int blockId, byte buffer[])
+	throws IOException, IllegalArgumentException
+	{
+	}
+
+	public void readTreeMetadata(TransID xid, int tnum, byte buffer[])
+	throws IOException, IllegalArgumentException
+	{
+	}
+
+
+	public void writeTreeMetadata(TransID xid, int tnum, byte buffer[])
+	throws IOException, IllegalArgumentException
+	{
+	}
+
+	public int getParam(int param)
+	throws IOException, IllegalArgumentException
+	{
+		return -1;
+	}
+	
+	private void readRoots() {
+		// TODO Auto-generated method stub
+	}
+
+	private void updateRoots(int tnum, Object object) {
+		;// TODO Auto-generated method stub
+	}
+
+
+
 }
