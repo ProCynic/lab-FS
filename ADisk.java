@@ -113,6 +113,11 @@ public class ADisk implements DiskCallback{
 	{
 		return Disk.NUM_OF_SECTORS - ADisk.REDO_LOG_SECTORS - 1;  // Can change if we add other data structures
 	} 
+	
+	//Static version of getNSectors.
+	public static int size() {
+		return Disk.NUM_OF_SECTORS - ADisk.REDO_LOG_SECTORS - 1;
+	}
 
 	//-------------------------------------------------------
 	//
@@ -313,9 +318,7 @@ public class ADisk implements DiskCallback{
 	// a valid sector number
 	//
 	//-------------------------------------------------------
-	public void writeSector(TransID tid, int sectorNum, byte buffer[])
-	throws IllegalArgumentException, 
-	IndexOutOfBoundsException 
+	public void writeSector(TransID tid, int sectorNum, byte buffer[]) throws IllegalArgumentException, IndexOutOfBoundsException 
 	{
 		try {
 			lock.lock();

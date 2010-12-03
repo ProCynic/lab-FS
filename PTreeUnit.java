@@ -3,7 +3,7 @@ import org.junit.After;
 import org.junit.Before;
 
 
-public class PTreeTest {
+public class PTreeUnit {
 
 	@Before
 	public void setUp() throws Exception {
