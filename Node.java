@@ -1,12 +1,18 @@
-import java.io.Serializable;
-
-
-@SuppressWarnings("serial")
-public abstract class Node implements Serializable{
+public abstract class Node{
 	
-
-	public Node() {
+	int[] pointers;
+	public int location;
+	
+	public Node(int location) {
+		this.location = location;
 	}
-	abstract public void write(byte[] block);
+	
+	public Node(int location, byte[] buffer) {
+		this(location);
+		this.fromBytes(buffer);
+	}
+	
+	abstract public byte[] getBytes();
+	abstract public void fromBytes(byte[] buffer);
 
 }
