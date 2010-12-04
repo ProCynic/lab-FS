@@ -499,15 +499,15 @@ public class PTree{
 		return node;
 	}
 	
-	//private
-	public LeafNode readLeaf(TransID tid, int location) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-		return new LeafNode(location, readBlock(tid, location));
-	}
-	
-	//private
-	public void writeLeaf(TransID tid, LeafNode node) throws IOException {
-		writeBlock(tid, node.location, node.getBytes());
-	}
+//	//private
+//	public LeafNode readLeaf(TransID tid, int location) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+//		return new LeafNode(location, readBlock(tid, location));
+//	}
+//	
+//	//private
+//	public void writeLeaf(TransID tid, LeafNode node) throws IOException {
+//		writeBlock(tid, node.location, node.getBytes());
+//	}
 
 	//private
 	public InternalNode readNode(TransID tid, int sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
@@ -539,9 +539,9 @@ public class PTree{
 		if (start > finish)
 			throw new IllegalArgumentException();
 		byte[] sector = new byte[Disk.SECTOR_SIZE];
-		byte[] buffer = new byte[finish + 1 -start * Disk.SECTOR_SIZE];
-		for(int i = start; i <= finish; i++) {
-			this.adisk.readSector(tid, i, sector);
+		byte[] buffer = new byte[(finish + 1 -start) * Disk.SECTOR_SIZE];
+		for(int i = 0; i <= finish-start; i++) {
+			this.adisk.readSector(tid, i+start, sector);
 			for(int index = 0; index < Disk.SECTOR_SIZE; index++)
 				buffer[i*Disk.SECTOR_SIZE + index] = sector[index];
 		}
