@@ -353,10 +353,14 @@ public class PTree{
 	//private
 	public void writeVisit(TransID tid, int height, InternalNode node, int blockID, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
 		assert (height >= 1);
-		assert (height >=1);
 		if(height == 1) {
 			assert (blockID < POINTERS_PER_INTERNAL_NODE);
-			short block = getSectors(tid, BLOCK_SIZE_SECTORS);
+			short block;
+			if (node.pointers[blockID] != Node.NULL_PTR)
+				block = node.pointers[blockID];
+			else
+				block = getSectors(tid, BLOCK_SIZE_SECTORS);
+			
 			writeBlock(tid, block, buffer);
 			node.pointers[blockID] = block;
 			writeNode(tid, node);	
@@ -388,7 +392,7 @@ public class PTree{
 
 			for(int i = freelist.nextClearBit(0); i < AVAILABLE_SECTORS;i=freelist.nextClearBit(i+1))   {
 				if(freelist.nextSetBit(i) >= i+numSectors || freelist.nextSetBit(i) < 0) {
-					freelist.clear(i, i+numSectors);
+					freelist.set(i, i+numSectors);
 					writeFreeList(tid, freelist);
 					return (short) i;
 				}
@@ -427,8 +431,11 @@ public class PTree{
 	}
 
 	public InternalNode getChild(TransID tid, Node parent, int index) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
+		//If the requested node already exists, simpoly return it.
 		if (parent.pointers[index] != Node.NULL_PTR)
 			return readNode(tid, parent.pointers[index]);
+		
+		//otherwise allocate a new node and return that.
 		short sector = getSectors(tid, BLOCK_SIZE_SECTORS);
 		InternalNode node = new InternalNode(sector);
 		parent.pointers[index] = sector;
