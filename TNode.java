@@ -7,29 +7,30 @@ import java.util.Arrays;
 
 
 public class TNode extends Node{
+	
+	public static final int NULL_TNUM = Integer.MIN_VALUE;
 
 	private static final long serialVersionUID = 5733757348481243149L;
 	int[] pointers;
 	public byte[] metadata;
 	public int treeHeight;
 	int TNum;  //Helpful, even if not strictly necessary.
-	public static final int TNODE_SIZE = 133; //TODO: Make sure this is correct before finalizing the TNode class.
+	public static final int TNODE_SIZE = 228; //TODO: Make sure this is correct before finalizing the TNode class.
 	
-	public TNode(int location) {
-		super(location);
+	private TNode() {
 		this.metadata = new byte[PTree.METADATA_SIZE];
 		this.pointers = new int[PTree.TNODE_POINTERS];
-		Arrays.fill(pointers, Integer.MIN_VALUE);
+		Arrays.fill(pointers, NULL_TNUM);
 		this.treeHeight = 0;
 	}
 	
-	public TNode(int location, int tnum) {
-		this(location);
+	public TNode(int tnum) {
 		this.TNum = tnum;
 	}
 	
-	public TNode(int location, byte[] buffer) {
-		super(location, buffer);
+	public TNode(byte[] buffer) {
+		this();
+		this.fromBytes(buffer);
 	}
 	
 	@Override

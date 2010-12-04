@@ -38,17 +38,16 @@ public class PTree{
 	public static final int BLOCK_SIZE_BYTES = 1024;
 	public static final int POINTERS_PER_INTERNAL_NODE = 256;
 	public static final int BLOCK_SIZE_SECTORS = numSectors(BLOCK_SIZE_BYTES);
-
-	private static final int ROOTS_LOCATION = ADisk.size() - numSectors(TNode.TNODE_SIZE * MAX_TREES); // TODO: verify	
-	private static final int FREE_LIST_LOCATION = 0; //TODO: location of first sector of free list.
+	
+	private static final int TNODES_PER_SECTOR = Disk.SECTOR_SIZE / TNode.TNODE_SIZE;
+	private static final int ROOTS_LOCATION = ADisk.size() - MAX_TREES / TNODES_PER_SECTOR + (MAX_TREES % TNODES_PER_SECTOR != 0 ? 1 : 0); // TODO: verify	
+	private static final int FREE_LIST_LOCATION = 0; //TODO: ROOTS_LOCATION - 1 bit for every sector
 	private static final int AVAILABLE_SECTORS = 0;  //TODO: ADisk.size() - datastructures
 
+	
+	
+
 	private ADisk adisk;
-	private HashSet<Integer> tnums;
-	private BitMap freelist;  // 1 is free, 0 is not free.
-
-
-
 	private SimpleLock lock;
 
 
@@ -57,19 +56,16 @@ public class PTree{
 	{
 		this.adisk = new ADisk(doFormat);
 		
-		this.tnums = new HashSet<Integer>(MAX_TREES);
 		TransID tid = this.adisk.beginTransaction();
 		try {
-			for(int i = 0; i < MAX_TREES; i++) 
-				if(readRoot(tid, i) != null)
-					tnums.add(i);
 			if(doFormat) {
-				this.freelist = new BitMap(AVAILABLE_SECTORS);
-				this.freelist.set(0, this.freelist.size());  //TODO: verify.  maybe size - 1?
-				writeFreeList(tid);  //Update freelist on disk
+				BitMap freelist = new BitMap(AVAILABLE_SECTORS);
+				freelist.set(0, freelist.size());  //TODO: verify.  maybe size - 1?
+				writeFreeList(tid, freelist);  //Update freelist on disk
+				for(int i = 0; i < MAX_TREES; i++) {
+					writeRoot(tid, i, null);  //Fill out root array with null tnodes.
+				}
 			}
-			else
-				readFreeList(tid);
 			adisk.commitTransaction(tid);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -106,16 +102,13 @@ public class PTree{
 
 	}
 
-	public int getTNum() throws ResourceException{
-		if (tnums.isEmpty())
-			throw new ResourceException();
-		Iterator<Integer> iter = tnums.iterator();
-		Integer newTNum = iter.next();
-		iter.remove();
-		return newTNum;
-
+	public int getTNum(TransID tid) throws ResourceException, IOException{
+		for(int i = 0; i < MAX_TREES; i++)
+			if (readRoot(tid, i) == null)
+				return i;
+		throw new ResourceException();
 	}
-
+	
 	public int createTree(TransID xid) 
 	throws IOException, IllegalArgumentException, ResourceException
 	{
@@ -124,10 +117,10 @@ public class PTree{
 			lock.lock();		
 
 			//get next available TNum
-			newTNum = getTNum();
+			newTNum = getTNum(xid);
 
 			//create tree
-			writeRoot(xid, new TNode(newTNum));
+			writeRoot(xid, newTNum, new TNode(newTNum));
 		}
 		finally{
 			lock.unlock();
@@ -138,9 +131,7 @@ public class PTree{
 	public void deleteTree(TransID xid, int tnum) 
 	throws IOException, IllegalArgumentException
 	{
-		//TODO: deallocate tree sectors
-		this.writeRoot(xid, null);  //TODO: Fix this.  writeRootSector uses TNode.getBytes.
-		this.tnums.add(tnum);
+		visit(xid, )
 	}
 
 
@@ -173,7 +164,10 @@ public class PTree{
 	throws IOException, IllegalArgumentException
 	{
 		assert (buffer.length <= METADATA_SIZE);
-		byte[] metadata = readRoot(xid, tnum).metadata;
+		TNode t = readRoot(xid, tnum);
+		if (t == null) 
+			throw new IllegalArgumentException();
+		byte[] metadata = t.metadata;
 		fill(metadata, buffer);
 
 	}
@@ -184,90 +178,97 @@ public class PTree{
 	{
 		assert buffer.length <= METADATA_SIZE;
 		TNode node = readRoot(xid, tnum);
+		if (node == null)
+			throw new IllegalArgumentException();
 		fill(buffer,node.metadata);
-		writeRoot(xid, node);
+		writeRoot(xid, tnum, node);
 	}
 
+	//Do we need a tid?
 	public int getParam(int param)
 	throws IOException, IllegalArgumentException
 	{
+		TransID tid = this.adisk.beginTransaction();
 		if(param == ASK_MAX_TREES)
 			return MAX_TREES;
 		else if (param == ASK_FREE_TREES)
-			return tnums.size();
+			return numFreeTrees(tid);
 		else if (param == ASK_FREE_SPACE)
-			return freelist.cardinality();
+			return readFreeList(tid).cardinality();
 		else
 			throw new IllegalArgumentException();
 
 	}
 
 	//private
+	public int numFreeTrees(TransID tid) throws IOException {
+		int s = 0;
+		for(int tnum = 0; tnum < MAX_TREES; tnum++)
+			if(readRoot(tid, tnum) == null)
+				s++;
+		return s;
+	}
+
+	//private
 	public TNode readRoot(TransID tid, int tnum) throws IOException {
-		int sectornum = findRoot(tnum);
-		ArrayList<TNode> nodes = readRootSector(tid, sectornum);
-		for (TNode n : nodes)
-			if(n.TNum == tnum)
-				return n;
-		return null;
-	}
-
-	//private
-	public void writeRoot(TransID tid, TNode obj) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-		int sectornum = findRoot(obj.TNum);
-		ArrayList<TNode> nodes = readRootSector(tid, sectornum);
-		for (int n = 0; n < nodes.size(); n++)
-			if(nodes.get(n).TNum == obj.TNum)
-				nodes.set(n,obj);
-		writeRootSector(tid, sectornum, nodes);
-	}
-
-	//private
-	public ArrayList<TNode> readRootSector(TransID tid, int sectornum) throws IOException {
-		byte[] sector = readSectors(tid,sectornum, sectornum);
-		ByteArrayInputStream in = new ByteArrayInputStream(sector);
+		int[] position = findRoot(tnum);  //TODO: Fix to return offset as well
+		int sectornum = position[0];
+		int offset = position[1];
+		
+		ByteBuffer buff = ByteBuffer.allocate(Disk.SECTOR_SIZE);
+		buff.put(readSectors(tid,sectornum, sectornum));
+		
+		byte[] nodebytes = new byte[TNode.TNODE_SIZE];
+		buff.get(nodebytes, offset * TNode.TNODE_SIZE, TNode.TNODE_SIZE);
+		
+		ByteArrayInputStream in = new ByteArrayInputStream(nodebytes);
 		ObjectInputStream ois = new ObjectInputStream(in);
-		ArrayList<TNode> nodes = new ArrayList<TNode>();
+		
+		TNode ret = null;
 		try {
-			while (ois.available() > 0) {
-				nodes.add((TNode)ois.readObject());
-			}
+			ret =  (TNode) ois.readObject();
 		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		return nodes;
-	}
-
-	//private
-	public void writeRootSector(TransID tid, int sectornum, ArrayList<TNode> nodes) {
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		try {
-			ObjectOutputStream oos = new ObjectOutputStream(out);
-			for(TNode t : nodes) 
-				oos.write(t.getBytes());
-			assert out.toByteArray().length <= Disk.SECTOR_SIZE;
-			writeSectors(tid, sectornum, out.toByteArray());
-		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(-1);
 		}
+		return ret;
+	}
+	
+	//private
+	public void writeRoot(TransID tid, int tnum, TNode node) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		int[] position = findRoot(node.TNum);  //TODO: Fix to return offset as well
+		int sectornum = position[0];
+		int offset = position[1];
+		
+		ByteBuffer buff = ByteBuffer.allocate(Disk.SECTOR_SIZE);
+		buff.put(readSectors(tid,sectornum, sectornum));
+		
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(out);
+		oos.writeObject(node);
+		
+		buff.put(out.toByteArray(), offset * TNode.TNODE_SIZE, TNode.TNODE_SIZE);
+		
+		writeSectors(tid, sectornum, buff.array());
+		
 	}
 
-
 	//private
-	public int findRoot(int tnum){
-		return ROOTS_LOCATION + (TNode.TNODE_SIZE * tnum / Disk.SECTOR_SIZE);  //TODO: verify this works.
+	public int[] findRoot(int tnum){
+		int[] position = new int[2];
+		position[0] = ROOTS_LOCATION + tnum / TNODES_PER_SECTOR;  //TODO: verify this works.
+		position[1] = tnum % TNODES_PER_SECTOR;
+		return position;
 	}
 
 	//TODO: Test ASAP
 	//private
-	public void visit(TransID tid, int height, InternalNode node, int blockID, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+	public void visit(TransID tid, int height, InternalNode node, int blockID, byte[] buffer, Visitor visitor) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
 		assert (buffer.length == BLOCK_SIZE_BYTES);
 
 		if (height == 0) { //Write the leaf and return.
-			int sectornum = getSectors(BLOCK_SIZE_SECTORS);
+			int sectornum = getSectors(tid, BLOCK_SIZE_SECTORS);
 			node.pointers[blockID] = sectornum;
 			writeBlock(tid, node.location, node.getBytes());
 			return;
@@ -279,7 +280,7 @@ public class PTree{
 		InternalNode next = null;
 
 		if (node.pointers[ptr] == Integer.MIN_VALUE) {  //If the internal node doesn't exist, create it.
-			int sectornum = getSectors(BLOCK_SIZE_SECTORS);  
+			int sectornum = getSectors(tid, BLOCK_SIZE_SECTORS);  
 			node.pointers[ptr] = sectornum;
 			writeNode(tid, node); //Update node on disk.
 			next = new InternalNode(sectornum);
@@ -287,33 +288,43 @@ public class PTree{
 		} else //Otherwise read it from disk.
 			next = readNode(tid, node.pointers[ptr]);
 			// drop a level and repeat.
-			visit(tid, height-1, next, blockID/node.pointers.length, buffer);  //Do I need to divide blockID?
+			visit(tid, height-1, next, blockID/node.pointers.length, buffer, visitor);  //Do I need to divide blockID?
 	}
 
 
 	//private
 	//essentially c malloc, but with sectors, not bytes.
-	public int getSectors(int blockSizeSectors) {
-		// TODO Auto-generated method stub
-		return 0;
+	public int getSectors(TransID tid, int blockSizeSectors) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		BitMap freelist = readFreeList(tid);
+		for(int i = 0; i < freelist.length(); i++)  //Could be more efficient, but I don't think it's a problem.
+			if (freelist.get(i) && freelist.get(i+1))
+				return i;
+		throw new ResourceException();
 	}
 	
 	//private
-	public void freeSectors(int start, int finish) {
+	public void freeSector(TransID tid, int sector) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		BitMap freelist = readFreeList(tid);
+		freelist.set(sector);
+		writeFreeList(tid, freelist);
+	}
+	
+	//private
+	public void freeSectors(TransID tid, int start, int finish) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
 		assert start <= finish;
 		for(int i = start; i <= finish; i++) {
-			freelist.set(i);
+			freeSector(tid, i);
 		}
 	}
 	
 	//private
-	public void readFreeList(TransID tid) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-		this.freelist.fromBytes(readSectors(tid, FREE_LIST_LOCATION, this.adisk.getNSectors()));
+	public BitMap readFreeList(TransID tid) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		return new BitMap(readSectors(tid, FREE_LIST_LOCATION, this.adisk.getNSectors()));
 	}
 	
 	//private
-	public void writeFreeList(TransID tid)  throws IllegalArgumentException, IndexOutOfBoundsException{
-		writeSectors(tid, FREE_LIST_LOCATION, this.freelist.getBytes());
+	public void writeFreeList(TransID tid, BitMap freelist)  throws IllegalArgumentException, IndexOutOfBoundsException{
+		writeSectors(tid, FREE_LIST_LOCATION, freelist.getBytes());
 	}
 	
 	//private
@@ -380,5 +391,25 @@ public class PTree{
 		for(; i < dest.length; i++)
 			dest[i] = (byte) 0;
 		return dest;
+	}
+	
+	class DeleteVisitor extends Visitor {
+		public DeleteVisitor(TransID tid){
+			super(tid);
+		}
+
+		@Override
+		public void visit(Node current, Object next) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+			if(current.getClass() == TNode.class) {
+				TNode node = (TNode) current;
+				writeRoot(this.tid, node.TNum, null);
+			} else {
+				InternalNode node = (InternalNode)current;
+				freeSectors(tid, node.location, node.location + BLOCK_SIZE_SECTORS);
+				if(next.getClass() == InternalNode.class)
+					return;
+				freeSectors(tid, node.)
+			}
+		}
 	}
 }

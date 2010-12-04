@@ -3,23 +3,24 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 
-public class InternalNode extends Node implements Serializable{
+public class InternalNode extends Node{
 
 	private static final long serialVersionUID = 7400442076200379954L;
+	
+	public int location;
 
 	public InternalNode(int location) {
-		super(location);
 		this.pointers = new int[PTree.POINTERS_PER_INTERNAL_NODE];
 		Arrays.fill(pointers, Integer.MIN_VALUE);
 	}
 	
 	public InternalNode(int location, byte[] buffer) {
-		super(location, buffer);
+		this(location);
+		this.fromBytes(buffer);
 	}
 
 	@Override
