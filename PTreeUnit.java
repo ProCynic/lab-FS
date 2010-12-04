@@ -56,6 +56,8 @@ public class PTreeUnit {
 			} catch (IOException e) {
 				e.printStackTrace();
 				fail("Exception Fail");
+			} catch (IndexOutOfBoundsException e) {
+				System.out.println("Out of bounds: " + tnum);
 			}
 	}
 	
@@ -94,6 +96,22 @@ public class PTreeUnit {
 				e.printStackTrace();
 				fail("Exception Fail");
 			}
+		}
+	}
+	
+	@Test
+	public void testAllocateRoots2() {
+		TransID tid = ptree.beginTrans();
+		int tnum = -1;
+		for (int i = 0; i < 2 * PTree.MAX_TREES; i++) {
+				try {
+					tnum = ptree.getTNum(tid);
+					ptree.writeRoot(tid, tnum, new TNode(tnum));
+					ptree.deleteTree(tid, tnum);
+				} catch (Exception e) {
+					e.printStackTrace();
+					fail("Exception Fail");
+				}
 		}
 	}
 

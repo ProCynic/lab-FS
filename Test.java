@@ -48,7 +48,9 @@ public class Test {
 		
 		System.out.println(buff.length);
 		
-		new TNode(buff);
+		TNode t = new TNode(buff);
+		System.out.println(t.TNum);
+		
 //		
 //		System.out.println(TNode.TNODE_SIZE);
 //		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());

@@ -41,7 +41,7 @@ public class PTree{
 	public static final int BLOCK_SIZE_SECTORS = numSectors(BLOCK_SIZE_BYTES);
 
 	public static final int TNODES_PER_SECTOR = Disk.SECTOR_SIZE / TNode.TNODE_SIZE;
-	public static final int ROOTS_LOCATION = ADisk.size() - MAX_TREES / TNODES_PER_SECTOR + (MAX_TREES % TNODES_PER_SECTOR != 0 ? 1 : 0); // TODO: verify	
+	public static final int ROOTS_LOCATION = ADisk.size() - (MAX_TREES / TNODES_PER_SECTOR + (MAX_TREES % TNODES_PER_SECTOR != 0 ? 1 : 0)) - 1; // TODO: verify	
 	public static final int FREE_LIST_LOCATION = ROOTS_LOCATION - 4;  //TODO: make dynamic
 	public static final int AVAILABLE_SECTORS = FREE_LIST_LOCATION;
 
@@ -220,6 +220,8 @@ public class PTree{
 
 	//private
 	public int[] findRoot(int tnum) throws IndexOutOfBoundsException{
+		if (tnum >= MAX_TREES)
+			throw new IndexOutOfBoundsException();
 		int[] position = new int[2];
 		position[0] = ROOTS_LOCATION + tnum / TNODES_PER_SECTOR;  //TODO: verify this works.
 		position[1] = tnum % TNODES_PER_SECTOR;
@@ -243,19 +245,20 @@ public class PTree{
 			nodebytes[i] = buff[i+offset];
 		if (Arrays.equals(nodebytes, new byte[TNode.TNODE_SIZE]))
 			return null;
+		return new TNode(nodebytes);
 
-		ByteArrayInputStream in = new ByteArrayInputStream(nodebytes);
-		ObjectInputStream ois = new ObjectInputStream(in);
-
-		TNode ret = null;
-		try {
-			ret = (TNode) ois.readObject();
-		} catch (ClassNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.exit(-1);
-		}
-		return ret;
+//		ByteArrayInputStream in = new ByteArrayInputStream(nodebytes);
+//		ObjectInputStream ois = new ObjectInputStream(in);
+//
+//		TNode ret = null;
+//		try {
+//			ret = (TNode) ois.readObject();
+//		} catch (ClassNotFoundException e) {
+//			// TODO Auto-generated catch block
+//			e.printStackTrace();
+//			System.exit(-1);
+//		}
+//		return ret;
 	}
 
 	//private
@@ -276,9 +279,9 @@ public class PTree{
 		byte[] buff = readSectors(tid, sectornum, sectornum);
 		
 
-		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		ObjectOutputStream oos = new ObjectOutputStream(out);
-		oos.writeObject(node);
+//		ByteArrayOutputStream out = new ByteArrayOutputStream();
+//		ObjectOutputStream oos = new ObjectOutputStream(out);
+//		oos.writeObject(node);
 //		t = out.toByteArray();   //TODO: Debug 
 		
 //		int off = offset * TNode.TNODE_SIZE;  //TODO: Debug 
@@ -287,7 +290,8 @@ public class PTree{
 //		buff.put(out.toByteArray(), offset * TNode.TNODE_SIZE, out.toByteArray().length);
 //		writeSectors(tid, sectornum, buff.array());
 		
-		byte[] nodeBytes = out.toByteArray();
+		byte[] nodeBytes = node.getBytes();
+		assert nodeBytes.length == TNode.TNODE_SIZE;
 		assert offset + nodeBytes.length <= Disk.SECTOR_SIZE;
 		for(int i = 0; i < nodeBytes.length; i++)
 			buff[offset + i] = nodeBytes[i];

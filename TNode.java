@@ -13,7 +13,7 @@ public class TNode extends Node{
 	public byte[] metadata;
 	public int treeHeight;
 	int TNum;  //Helpful, even if not strictly necessary.
-	public static final int TNODE_SIZE = 228; //TODO: Make sure this is correct before finalizing the TNode class.
+	public static final int TNODE_SIZE = 133;
 	
 	private TNode() {
 		this.metadata = new byte[PTree.METADATA_SIZE];
