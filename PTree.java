@@ -240,7 +240,7 @@ public class PTree{
 		int offset = position[1] * TNode.TNODE_SIZE;
 
 //		ByteBuffer buff = ByteBuffer.allocate(Disk.SECTOR_SIZE);
-		byte[] buff = readSectors(tid,sectornum, sectornum);
+		byte[] buff = readSector(tid, sectornum);
 
 		byte[] nodebytes = new byte[TNode.TNODE_SIZE];
 //		buff.get(nodebytes, offset, TNode.TNODE_SIZE);
@@ -283,7 +283,7 @@ public class PTree{
 //		buff.put(readSectors(tid,sectornum, sectornum));
 //		t = buff.array();   //TODO: Debug 
 		
-		byte[] buff = readSectors(tid, sectornum, sectornum);
+		byte[] buff = readSector(tid, sectornum);
 		
 
 //		ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -476,7 +476,7 @@ public class PTree{
 
 	//private
 	public BitMap readFreeList(TransID tid) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-		return new BitMap(readSectors(tid, FREE_LIST_LOCATION, this.adisk.getNSectors()));
+		return new BitMap(readSectors(tid, FREE_LIST_LOCATION, ROOTS_LOCATION-1));   //TODO: Verify that this is not broken
 	}
 
 	//private
@@ -525,7 +525,7 @@ public class PTree{
 
 	//private
 	public byte[] readBlock(TransID tid, int sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException{
-			return readSectors(tid, sectornum, sectornum + BLOCK_SIZE_SECTORS);
+			return readSectors(tid, sectornum, sectornum + BLOCK_SIZE_SECTORS - 1);
 	}
 
 	//private
@@ -536,9 +536,10 @@ public class PTree{
 
 	//private
 	public byte[] readSectors(TransID tid, int start, int finish) throws IllegalArgumentException, IndexOutOfBoundsException, IOException{
-		if (start > finish)
+		if (finish < start)
 			throw new IllegalArgumentException();
 		byte[] sector = new byte[Disk.SECTOR_SIZE];
+
 		byte[] buffer = new byte[(finish + 1 -start) * Disk.SECTOR_SIZE];
 		for(int i = 0; i <= finish-start; i++) {
 			this.adisk.readSector(tid, i+start, sector);
@@ -560,6 +561,18 @@ public class PTree{
 			this.adisk.writeSector(tid, start+i, sector);
 			i++;
 		}
+	}
+	
+	//private
+	public byte[] readSector(TransID tid, int sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		byte[] buff = new byte[Disk.SECTOR_SIZE];
+		this.adisk.readSector(tid, sectornum, buff);
+		return buff;
+	}
+	
+	//private
+	public void writeSector(TransID tid, int sectornum, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		this.adisk.writeSector(tid, sectornum, buffer);
 	}
 
 	public static int numSectors(byte[] buffer) {

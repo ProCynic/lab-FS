@@ -36,7 +36,7 @@ public class PTreeUnit {
 		
 		byte[] buffer2;
 		try{
-			buffer2 = ptree.readSectors(tid, start, start);
+			buffer2 = ptree.readSector(tid, start);
 		}catch(IOException e){
 			fail("Exception Fail");
 			buffer2=null;
@@ -131,14 +131,48 @@ public class PTreeUnit {
 			e.printStackTrace();
 			fail("Exception Fail");
 		}
-		System.out.println("buffer.length ="+buffer.length);
-		System.out.println("buffer2.length ="+buffer2.length);
 		assertTrue(buffer.length == buffer2.length);
 		for(int i=0;i<buffer.length;i++){
 			assertTrue(buffer[i]==buffer2[i]);
 		}
 	}
 	
+	@Test
+	public void testTree(){
+		TransID tid = ptree.beginTrans();
+		try{
+			ptree.createTree(tid);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+		}				
+	}
+	
+	@Test
+	public void testTreeWriteBlock(){
+		TransID tid = ptree.beginTrans();
+		int tnum = -1;
+		try{
+			tnum = ptree.createTree(tid);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");	
+		}		
+		
+		int blockId = 0;
+		byte[] buffer = new byte[PTree.BLOCK_SIZE_BYTES];
+		for(int i=0;i<buffer.length;i++){
+			buffer[i]=(byte)i;
+		}
+		
+		try{
+			ptree.writeData(tid, tnum, blockId, buffer);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+		}				
+		
+	}
 	
 
 }
