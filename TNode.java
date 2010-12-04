@@ -31,13 +31,13 @@ public class TNode extends Node{
 		Arrays.fill(this.pointers, NULL_PTR);
 	}
 	
-	public TNode(byte[] buffer) {
+	public TNode(byte[] buffer) throws ClassNotFoundException {
 		this();
 		this.fromBytes(buffer);
 	}
 	
 	@Override
-	public void fromBytes(byte[] buffer) {
+	public void fromBytes(byte[] buffer) throws ClassNotFoundException {
 		assert (buffer.length == TNODE_SIZE);
 		ByteArrayInputStream in = new ByteArrayInputStream(buffer);
 		try {
@@ -49,10 +49,6 @@ public class TNode extends Node{
 			this.pointers = (int[]) ois.readObject();
 			
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.exit(-1);
-		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(-1);

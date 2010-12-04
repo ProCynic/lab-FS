@@ -18,7 +18,7 @@ public class InternalNode extends Node{
 		Arrays.fill(pointers, NULL_PTR);
 	}
 	
-	public InternalNode(int location, byte[] buffer) {
+	public InternalNode(int location, byte[] buffer) throws ClassNotFoundException {
 		this(location);
 		this.fromBytes(buffer);
 	}
@@ -29,17 +29,13 @@ public class InternalNode extends Node{
 			this.pointers[i] = root.pointers[i];
 	}
 
-	public void fromBytes(byte[] buffer) {
+	public void fromBytes(byte[] buffer) throws ClassNotFoundException {
 		assert buffer.length == PTree.BLOCK_SIZE_BYTES;
 		ByteArrayInputStream in = new ByteArrayInputStream(buffer);
 		try {
 			ObjectInputStream ois = new ObjectInputStream(in);
 			this.pointers = (int[]) ois.readObject();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.exit(-1);
-		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(-1);

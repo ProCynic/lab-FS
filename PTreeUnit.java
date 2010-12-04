@@ -56,7 +56,8 @@ public class PTreeUnit {
 			} catch (IOException e) {
 				e.printStackTrace();
 				fail("Exception Fail");
-			} 
+
+			}
 	}
 	
 	@Test(expected=IndexOutOfBoundsException.class)

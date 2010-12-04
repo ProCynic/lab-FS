@@ -134,7 +134,10 @@ public class PTree{
 	public void deleteTree(TransID xid, int tnum) 
 	throws IOException, IllegalArgumentException
 	{
-		//		visit(xid, )
+//		TNode root = readRoot(xid, tnum);
+//		for(int n : root.pointers)
+//			if (n != Node.NULL_PTR)
+//				deleteNode(root.pointers[n]);
 	}
 
 
@@ -245,7 +248,11 @@ public class PTree{
 			nodebytes[i] = buff[i+offset];
 		if (Arrays.equals(nodebytes, new byte[TNode.TNODE_SIZE]))
 			return null;
-		return new TNode(nodebytes);
+		try {
+			return new TNode(nodebytes);
+		} catch (ClassNotFoundException e) {
+			return null;
+		}
 
 //		ByteArrayInputStream in = new ByteArrayInputStream(nodebytes);
 //		ObjectInputStream ois = new ObjectInputStream(in);
@@ -422,6 +429,18 @@ public class PTree{
 		int index = blockID / leavesBelow;
 		writeVisit(tid, height-1, getChild(tid, node, index), blockID%leavesBelow, buffer);
 	}
+	
+	//private
+	public void deleteNode(TransID tid, InternalNode node) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		if (node == null) {
+			freeSectors(tid, node.location, node.location + BLOCK_SIZE_SECTORS);
+			return;
+		}
+		for(int i : node.pointers)
+			if (node.pointers[i] != Node.NULL_PTR)
+				deleteNode(tid, readNode(tid, node.pointers[i]));
+		
+	}
 
 	//private
 	//essentially c malloc, but with sectors, not bytes.
@@ -479,6 +498,25 @@ public class PTree{
 			writeNode(tid, (InternalNode)parent);
 		return node;
 	}
+	
+	//private
+	public LeafNode readLeaf(TransID tid, int location) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		return new LeafNode(location, readBlock(tid, location));
+	}
+	
+	//private
+	public void writeLeaf(TransID tid, LeafNode node) throws IOException {
+		writeBlock(tid, node.location, node.getBytes());
+	}
+
+	//private
+	public InternalNode readNode(TransID tid, int sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		try {
+			return new InternalNode(sectornum, readBlock(tid, sectornum));
+		} catch (ClassNotFoundException e) {
+			return null;
+		}
+	}
 
 	//private
 	public void writeNode(TransID tid, InternalNode node)  throws IllegalArgumentException, IndexOutOfBoundsException{
@@ -486,14 +524,8 @@ public class PTree{
 	}
 
 	//private
-	public InternalNode readNode(TransID tid, int sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-		return new InternalNode(sectornum, readBlock(tid, sectornum));
-	}
-
-
-	//private
 	public byte[] readBlock(TransID tid, int sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException{
-		return readSectors(tid, sectornum, sectornum + BLOCK_SIZE_SECTORS);
+			return readSectors(tid, sectornum, sectornum + BLOCK_SIZE_SECTORS);
 	}
 
 	//private
@@ -507,12 +539,13 @@ public class PTree{
 		if (start > finish)
 			throw new IllegalArgumentException();
 		byte[] sector = new byte[Disk.SECTOR_SIZE];
-		ByteBuffer buffer = ByteBuffer.allocate((finish + 1 -start) * Disk.SECTOR_SIZE);
+		byte[] buffer = new byte[finish + 1 -start * Disk.SECTOR_SIZE];
 		for(int i = start; i <= finish; i++) {
 			this.adisk.readSector(tid, i, sector);
-			buffer.put(sector);
+			for(int index = 0; index < Disk.SECTOR_SIZE; index++)
+				buffer[i*Disk.SECTOR_SIZE + index] = sector[index];
 		}
-		return buffer.array();
+		return buffer;
 	}
 
 	//private
