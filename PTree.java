@@ -151,21 +151,28 @@ public class PTree{
 	public void writeData(TransID xid, int tnum, int blockId, byte buffer[])
 	throws IOException, IllegalArgumentException
 	{
-//		TNode root = readRoot(xid, tnum);
-//		if (root.treeHeight == 0) //expand the tree
-//			while(root.treeHeight 
-//					root.treeHeight++;
-//			
-//		while ((TNODE_POINTERS * Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-1)-1) < blockId) {
-//			root.treeHeight++;
-//			InternalNode n = new InternalNode(getSectors(xid, BLOCK_SIZE_SECTORS), root);
-//			root.clear();
-//			root.pointers[0] = n.location;
-//			writeNode(xid, n);
-//		}
-//		writeRoot(xid, root.TNum, root);
-//		writeVisit(xid, root, blockId, buffer);
+		TNode root = readRoot(xid, tnum);
 
+		if (root.treeHeight == 0) // if there are no written blocks, just expand the height.
+			while(maxBlocks(root.treeHeight) < blockId) 
+					root.treeHeight++;
+		else //reroot the tree.
+			while (maxBlocks(root.treeHeight) < blockId) {
+				root.treeHeight++;
+				InternalNode n = new InternalNode(getSectors(xid, BLOCK_SIZE_SECTORS), root);
+				root.clear();
+				root.pointers[0] = n.location;
+				writeNode(xid, n);
+			}
+		writeRoot(xid, root.TNum, root);
+		writeVisit(xid, root, blockId, buffer);
+
+	}
+	
+	//private
+	//Find the maximum block ID a tree of a given height supports
+	public static int maxBlocks(int height) {
+		return  TNODE_POINTERS * (int)Math.pow(POINTERS_PER_INTERNAL_NODE, height - 1) - 1;
 	}
 
 	public void readTreeMetadata(TransID xid, int tnum, byte buffer[])
