@@ -1,6 +1,7 @@
 FILES = \
 ADisk.java \
 ADiskUnit.java \
+BitMap.java \
 Common.java \
 DirEnt.java \
 DiskCallback.java \
@@ -9,11 +10,17 @@ DiskResult.java \
 DiskUnit.java \
 DiskWorker.java \
 FlatFS.java \
+FlatFSUnit.java \
+Helper.java \
+InternalNode.java \
+Node.java \
 PTree.java \
+PTreeUnit.java \
 ResourceException.java \
 RFS.java \
 Sector.java \
 SimpleLock.java \
+TNode.java \
 Transaction.java \
 TransID.java
 
@@ -43,7 +50,9 @@ default $(FILES):
 	
 unit: default
 	@echo "Starting Tests"
-	java org.junit.runner.JUnitCore ADiskUnit
+	java org.junit.runner.JUnitCore ADiskUnit 
+	java org.junit.runner.JUnitCore PTreeUnit 
+	java org.junit.runner.JUnitCore FlatFSUnit
 
 clean:
 	@echo "Cleaning"

@@ -18,25 +18,27 @@ public class FlatFSUnit {
 	@After
 	public void tearDown() throws Exception {
 	}
-
-	@Test
-	public void testFlatFS() {
-		fail("Not yet implemented");
-	}
-
-	@Test
-	public void testBeginTrans() {
-		fail("Not yet implemented");
-	}
-
+		
 	@Test
 	public void testCommitTrans() {
-		fail("Not yet implemented");
+		TransID tid = flatFS.beginTrans();
+		try {
+			flatFS.commitTrans(tid);			
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception Fail");
+		}
 	}
 
 	@Test
 	public void testAbortTrans() {
-		fail("Not yet implemented");
+		TransID tid = flatFS.beginTrans();
+		try {
+			flatFS.abortTrans(tid);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception Fail");
+		}
 	}
 
 	@Test
@@ -44,41 +46,56 @@ public class FlatFSUnit {
 		try{
 			TransID tid = flatFS.beginTrans();
 			int inode = flatFS.createFile(tid);
+			flatFS.deleteFile(tid,inode);
+			
 		}catch(IOException e){
 			e.printStackTrace();
 			fail("Excpetion fail");
 		}
 		
-	}
-
-	@Test
-	public void testDeleteFile() {
-		fail("Not yet implemented");
-	}
+	}	
 
 	@Test
 	public void testRead() {
-		fail("Not yet implemented");
+		fail("Just didn't write tests yet");
 	}
 
 	@Test
 	public void testWrite() {
-		fail("Not yet implemented");
+		fail("Just write tests yet");
 	}
 
 	@Test
 	public void testReadFileMetadata() {
-		fail("Not yet implemented");
+		try{
+			flatFS.getParam(FlatFS.ASK_MAX_FILE);
+			flatFS.getParam(FlatFS.ASK_FREE_FILES);
+			flatFS.getParam(FlatFS.ASK_FREE_SPACE_BLOCKS);
+			flatFS.getParam(FlatFS.ASK_FILE_METADATA_SIZE);
+		}catch(IOException e){
+			e.printStackTrace();
+		
+		}
 	}
 
-	@Test
-	public void testWriteFileMetadata() {
-		fail("Not yet implemented");
-	}
+	
 
 	@Test
 	public void testGetParam() {
-		fail("Not yet implemented");
+		try{
+			TransID tid = flatFS.beginTrans();
+			int tnum = flatFS.createFile(tid);
+			byte buffer[] = new byte[FlatFS.ASK_FILE_METADATA_SIZE];
+			for (int i=0;i<buffer.length;i++){
+				buffer[i]=(byte)i;}		
+			flatFS.writeFileMetadata( tid, tnum, buffer);
+			byte buffer2[] =new byte[PTree.METADATA_SIZE];
+			flatFS.readFileMetadata(tid,tnum,buffer2);			
+			assertTrue(Arrays.equals(buffer,buffer2));				
+		}catch(IOException e){
+			e.printStackTrace();
+					
+		}
 	}
 
 }
