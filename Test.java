@@ -15,12 +15,21 @@ public class Test {
 	 * @throws ClassNotFoundException 
 	 */
 	public static void main(String[] args) throws IOException, ClassNotFoundException {
-		byte[] test = "Hello World".getBytes();
-		ByteBuffer buff = ByteBuffer.allocate(512);
 		
-		buff.put(test, 0, test.length);
-		System.out.println(buff.array());
+//		PTree p = new PTree(true);
 		
+//		ByteArrayInputStream in = new ByteArrayInputStream(new byte[TNode.TNODE_SIZE]);
+//		ObjectInputStream ois = new ObjectInputStream(in);
+//		System.out.println((TNode)ois.readObject());
+		
+//		byte[] test = "Hello World".getBytes();
+//		ByteBuffer buff = ByteBuffer.allocate(512);
+//		
+//		buff.put(new byte[512]);
+//		
+//		buff.put(test, 0, test.length);
+//		System.out.println(buff.array());
+				
 //		InternalNode t = new InternalNode();
 //		System.out.println(t.getBytes().length);
 		
@@ -30,12 +39,16 @@ public class Test {
 //		System.out.println(b.array().length);
 		
 		
-//		ByteArrayOutputStream out = new ByteArrayOutputStream();
-//		ObjectOutputStream oos = new ObjectOutputStream(out);
-//		oos.writeObject(new TNode(0));
-//		System.out.println(out.toByteArray().length);
-//		
-//		System.out.println(new TNode(0).getBytes().length);
+		ByteArrayOutputStream out = new ByteArrayOutputStream();
+		ObjectOutputStream oos = new ObjectOutputStream(out);
+		oos.writeObject(new TNode(0));
+		System.out.println(out.toByteArray().length);
+		
+		byte[] buff = new TNode(0).getBytes();
+		
+		System.out.println(buff.length);
+		
+		new TNode(buff);
 //		
 //		System.out.println(TNode.TNODE_SIZE);
 //		ByteArrayInputStream in = new ByteArrayInputStream(out.toByteArray());

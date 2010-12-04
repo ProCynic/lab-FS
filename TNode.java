@@ -27,56 +27,55 @@ public class TNode extends Node{
 		this.TNum = tnum;
 	}
 	
-//	public TNode(byte[] buffer) {
-//		this();
-//		this.fromBytes(buffer);
-//	}
+	public void clear() {
+		Arrays.fill(this.pointers, NULL_PTR);
+	}
 	
-//	@Override
-//	public void fromBytes(byte[] buffer) {
-//		assert (buffer.length == TNODE_SIZE);
-//		ByteArrayInputStream in = new ByteArrayInputStream(buffer);
-//		try {
-//			ObjectInputStream ois = new ObjectInputStream(in);
-//			this.TNum = ois.readInt();
-//			this.treeHeight = ois.readInt();
-//			int bytesRead = ois.read(metadata);
-//			assert (bytesRead == PTree.METADATA_SIZE);
-//			this.pointers = (int[]) ois.readObject();
-//			
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			System.exit(-1);
-//		} catch (ClassNotFoundException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			System.exit(-1);
-//		}
-//	}
-//	
-//	public void clear() {
-//		for(int i = 0; i < this.pointers.length; i++)
-//			this.pointers[i] = NULL_PTR;
-//	}
-//
-//	@Override
-//	public byte[] getBytes() {
-//		ByteArrayOutputStream out = new ByteArrayOutputStream(TNODE_SIZE);
-//		try {
-//			ObjectOutputStream oos = new ObjectOutputStream(out);
-//			oos.writeInt(TNum);
-//			oos.writeInt(treeHeight);
-//			oos.write(metadata);
-//			oos.writeObject(pointers);
-//		} catch (IOException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//			System.exit(-1);
-//		}
-//		
-//		return out.toByteArray();
-//	}
+	public TNode(byte[] buffer) {
+		this();
+		this.fromBytes(buffer);
+	}
+	
+	@Override
+	public void fromBytes(byte[] buffer) {
+		assert (buffer.length == TNODE_SIZE);
+		ByteArrayInputStream in = new ByteArrayInputStream(buffer);
+		try {
+			ObjectInputStream ois = new ObjectInputStream(in);
+			this.TNum = ois.readInt();
+			this.treeHeight = ois.readInt();
+			int bytesRead = ois.read(metadata);
+			assert (bytesRead == PTree.METADATA_SIZE);
+			this.pointers = (int[]) ois.readObject();
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(-1);
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(-1);
+		}
+	}
+	
+	@Override
+	public byte[] getBytes() {
+		ByteArrayOutputStream out = new ByteArrayOutputStream(TNODE_SIZE);
+		try {
+			ObjectOutputStream oos = new ObjectOutputStream(out);
+			oos.writeInt(TNum);
+			oos.writeInt(treeHeight);
+			oos.write(metadata);
+			oos.writeObject(pointers);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		
+		return out.toByteArray();
+	}
 
 
 }

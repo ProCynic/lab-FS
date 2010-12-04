@@ -115,7 +115,7 @@ public class ADisk implements DiskCallback{
 	} 
 	
 	//Static version of getNSectors.
-	public static int size() {
+	public static final int size() {
 		return Disk.NUM_OF_SECTORS - ADisk.REDO_LOG_SECTORS - 1;
 	}
 

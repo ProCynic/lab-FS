@@ -23,11 +23,11 @@ public class BitMap extends BitSet {
 	}
 
 	public byte[] getBytes() {
-		byte[] bytes = new byte[PTree.ROOTS_LOCATION - PTree.FREE_LIST_LOCATION];
+		byte[] bytes = new byte[(PTree.ROOTS_LOCATION - PTree.FREE_LIST_LOCATION) * Disk.SECTOR_SIZE];
 		int x = this.length();
 	    for (int i=0; i<this.length(); i++) {
-	        if (this.get(i)) {
-	            bytes[bytes.length-i/8-1] |= 1<<(i%8);
+	        if ((boolean)this.get(i)) {
+	            bytes[i/8] |= 1<<(8 - i%8);
 	        }
 	    }
 	    return bytes;
@@ -35,7 +35,7 @@ public class BitMap extends BitSet {
 	
 	public void fromBytes(byte[] buffer) {
 		for (int i=0; i<buffer.length*8; i++) {
-	        if ((buffer[buffer.length-i/8-1]&(1<<(i%8))) > 0) {
+	        if ((buffer[i/8]&(1<<(8 - i%8))) > 0) {
 	            this.set(i);
 	        }
 	    }
