@@ -23,6 +23,18 @@ public class PTreeUnit {
 	public void tearDown() throws Exception {
 	}
 	
+	@Test
+	public void testCommit() {
+		TransID tid = ptree.beginTrans();
+		try {
+			ptree.commitTrans(tid);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception Fail");
+		}
+
+	}
+	
 	@Test()
 	public void testWriteAndReadSector(){
 		TransID tid = ptree.beginTrans();
@@ -82,37 +94,70 @@ public class PTreeUnit {
 		}
 	}
 	
-	@Test(expected=ResourceException.class)
+	@Test
+	public void testFreeList() {
+		TransID tid = ptree.beginTrans();
+		BitMap freelist = null;
+		try {
+			freelist = ptree.readFreeList(tid);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception Fail.");
+		}
+		assertTrue(freelist.cardinality() == 0);
+	}
+	
+	@Test
 	public void testAllocateRoots() {
 		TransID tid = ptree.beginTrans();
 		int tnum = -1;
 		for (int i = 0; i < PTree.MAX_TREES; i++) {
 			try {
 				tnum = ptree.getTNum(tid);
-				assertTrue(tnum == i);
 				ptree.writeRoot(tid, tnum, new TNode(tnum));
+				if(i % 30 == 0) {
+					ptree.commitTrans(tid);
+					tid = ptree.beginTrans();
+				}
+					
 			} catch (IOException e) {
 				e.printStackTrace();
 				fail("Exception Fail");
 			}
 		}
+		try {
+			ptree.commitTrans(tid);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception Fail");
+		}
 	}
 	
-//	@Test
-//	public void testAllocateRoots2() {
-//		TransID tid = ptree.beginTrans();
-//		int tnum = -1;
-//		for (int i = 0; i < 2 * PTree.MAX_TREES; i++) {
-//				try {
-//					tnum = ptree.getTNum(tid);
-//					ptree.writeRoot(tid, tnum, new TNode(tnum));
-//					ptree.deleteTree(tid, tnum);
-//				} catch (Exception e) {
-//					e.printStackTrace();
-//					fail("Exception Fail");
-//				}
-//		}
-//	}
+	@Test(expected=ResourceException.class)
+	public void testAllocateRoots2() {
+		TransID tid = ptree.beginTrans();
+		int tnum = -1;
+		for (int i = 0; i <= PTree.MAX_TREES; i++) {
+			try {
+				tnum = ptree.getTNum(tid);
+				ptree.writeRoot(tid, tnum, new TNode(tnum));
+				if(i % 30 == 0) {
+					ptree.commitTrans(tid);
+					tid = ptree.beginTrans();
+				}
+					
+			} catch (IOException e) {
+				e.printStackTrace();
+				fail("Exception Fail");
+			}
+		}
+		try {
+			ptree.commitTrans(tid);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail("Exception Fail");
+		}
+	}
 	
 	@Test
 	public void testWriteAndReadBlock(){
