@@ -131,7 +131,7 @@ public class PTree{
 	public void deleteTree(TransID xid, int tnum) 
 	throws IOException, IllegalArgumentException
 	{
-		visit(xid, )
+//		visit(xid, )
 	}
 
 
@@ -153,6 +153,7 @@ public class PTree{
 		TNode root = readRoot(xid, tnum);
 		while (TNODE_POINTERS * Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight) >= blockId) {
 			root.treeHeight++;
+			InternalNode n = new InternalNode(getSectors(xid, BLOCK_SIZE_SECTORS), root);
 		}
 		//TODO: Move leaves down when you increase the height.  Reroot tree, I think.
 
@@ -294,12 +295,19 @@ public class PTree{
 
 	//private
 	//essentially c malloc, but with sectors, not bytes.
-	public int getSectors(TransID tid, int blockSizeSectors) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+	public int getSectors(TransID tid, int blockSizeSectors) throws IllegalArgumentException, IndexOutOfBoundsException, IOException, ResourceException{
 		BitMap freelist = readFreeList(tid);
-		for(int i = 0; i < freelist.length(); i++)  //Could be more efficient, but I don't think it's a problem.
-			if (freelist.get(i) && freelist.get(i+1))
-				return i;
-		throw new ResourceException();
+		try {
+			for(int i = 0; i < freelist.length();i=freelist.nextClearBit(i))   {//Could be more efficient, but I don't think it's a problem.
+				if(freelist.nextClearBit(i) > i+blockSizeSectors)
+					return i;
+			}
+		} catch (IndexOutOfBoundsException e) {
+			throw new ResourceException();
+		}
+		System.exit(-1);
+		return 0;
+		
 	}
 	
 	//private
@@ -393,23 +401,33 @@ public class PTree{
 		return dest;
 	}
 	
-	class DeleteVisitor extends Visitor {
-		public DeleteVisitor(TransID tid){
-			super(tid);
-		}
-
-		@Override
-		public void visit(Node current, Object next) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-			if(current.getClass() == TNode.class) {
-				TNode node = (TNode) current;
-				writeRoot(this.tid, node.TNum, null);
-			} else {
-				InternalNode node = (InternalNode)current;
-				freeSectors(tid, node.location, node.location + BLOCK_SIZE_SECTORS);
-				if(next.getClass() == InternalNode.class)
-					return;
-				freeSectors(tid, node.)
-			}
-		}
-	}
+//	class DeleteVisitor extends Visitor {
+//		public DeleteVisitor(TransID tid){
+//			super(tid);
+//		}
+//
+//		@SuppressWarnings("unchecked")
+//		@Override
+//		public void visit(Class type, int location) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+//			if(type == TNode.class) {
+//				writeRoot(this.tid, location, null); // In this case, location is tnum.  Otherwise sector number.
+//			} else
+//				freeSectors(this.tid, location, location + BLOCK_SIZE_SECTORS);
+//		}
+//	}
+//	
+//	class WriteVisitor extends Visitor {
+//
+//		public WriteVisitor(TransID tid) {
+//			super(tid);
+//			// TODO Auto-generated constructor stub
+//		}
+//
+//		@Override
+//		public void visit(Class type, int location)
+//				throws IllegalArgumentException, IndexOutOfBoundsException,
+//				IOException {
+//			// TODO Auto-generated method stub
+//			
+//		}
 }

@@ -17,6 +17,11 @@ public class BitMap extends BitSet {
 	    fromBytes(buffer);
 	}
 	
+	public BitMap(BitSet bitSet) {
+		super();
+		this.or(bitSet);
+	}
+
 	public byte[] getBytes() {
 		byte[] bytes = new byte[this.length() / 8 + (this.length() % 8 != 0 ? 1 : 0)];
 	    for (int i=0; i<this.length(); i++) {

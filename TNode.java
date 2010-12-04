@@ -8,8 +8,6 @@ import java.util.Arrays;
 
 public class TNode extends Node{
 	
-	public static final int NULL_TNUM = Integer.MIN_VALUE;
-
 	private static final long serialVersionUID = 5733757348481243149L;
 	int[] pointers;
 	public byte[] metadata;
@@ -20,7 +18,7 @@ public class TNode extends Node{
 	private TNode() {
 		this.metadata = new byte[PTree.METADATA_SIZE];
 		this.pointers = new int[PTree.TNODE_POINTERS];
-		Arrays.fill(pointers, NULL_TNUM);
+		Arrays.fill(pointers, NULL_PTR);
 		this.treeHeight = 0;
 	}
 	
@@ -54,6 +52,11 @@ public class TNode extends Node{
 			e.printStackTrace();
 			System.exit(-1);
 		}
+	}
+	
+	public void clear() {
+		for(int i = 0; i < this.pointers.length; i++)
+			this.pointers[i] = NULL_PTR;
 	}
 
 	@Override
