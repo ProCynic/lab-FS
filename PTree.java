@@ -136,17 +136,18 @@ public class PTree{
 	}
 
 
-	public void getMaxDataBlockId(TransID xid, int tnum)
+	public int getMaxDataBlockId(TransID xid, int tnum)
 	throws IOException, IllegalArgumentException
 	{
 		//TODO: Depth first search from right, return first non null leaf.
+		return 0;
 	}
 
 	public void readData(TransID xid, int tnum, int blockId, byte buffer[])
 	throws IOException, IllegalArgumentException
 	{
 		TNode root = readRoot(xid, tnum);
-		visit(xid, root.treeHeight, root, blockId, buffer, VisitAction.read);
+		readVisit(xid, root, blockId, buffer);
 	}
 
 
@@ -157,10 +158,12 @@ public class PTree{
 		while (TNODE_POINTERS * Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight) >= blockId) {
 			root.treeHeight++;
 			InternalNode n = new InternalNode(getSectors(xid, BLOCK_SIZE_SECTORS), root);
+			root.clear();
+			root.pointers[0] = n.location;
+			writeNode(xid, n);
 		}
-		//TODO: Move leaves down when you increase the height.  Reroot tree, I think.
-
-
+		writeRoot(xid, root.TNum, root);
+		writeVisit(xid, root, blockId, buffer);
 
 	}
 
@@ -211,6 +214,14 @@ public class PTree{
 			if(readRoot(tid, tnum) == null)
 				s++;
 		return s;
+	}
+
+	//private
+	public int[] findRoot(int tnum){
+		int[] position = new int[2];
+		position[0] = ROOTS_LOCATION + tnum / TNODES_PER_SECTOR;  //TODO: verify this works.
+		position[1] = tnum % TNODES_PER_SECTOR;
+		return position;
 	}
 
 	//private
@@ -265,63 +276,128 @@ public class PTree{
 
 	}
 
+//	private enum VisitAction {
+//		write,
+//		read;
+//	}
+//	
+//		//private
+//	public void visit(TransID tid, int height, Node node, int blockID, byte[] buffer, VisitAction action) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+////		visitor.visit(tid, InternalNode.class, node.location, buffer);
+//		
+//		int numpointers = node.getClass() == TNode.class ? TNODE_POINTERS : POINTERS_PER_INTERNAL_NODE;
+//
+//		if(height == 1) {
+//			if (action == VisitAction.write)
+//				writeBlock(tid, node.pointers[blockID], buffer);
+//			else if (action == VisitAction.read) {
+//				if (blockID >= numpointers)
+//					throw new IllegalArgumentException();
+//				if (node.pointers[blockID] == Node.NULL_PTR)
+//					Arrays.fill(buffer, (byte)0);
+//				else
+//					fill(readBlock(tid, node.pointers[blockID]), buffer);
+//			}
+//		}
+//		else {
+//			int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, height-1);
+//			int ptr = blockID / leavesBelow;
+//			int next = node.pointers[ptr];
+//			InternalNode n;
+//			if (next == Node.NULL_PTR) {
+//				if (action == VisitAction.read) {
+//					Arrays.fill(buffer, (byte)0);
+//					return;
+//				}
+//				int sector = getSectors(tid, BLOCK_SIZE_SECTORS);
+//				n = new InternalNode(sector);
+//				writeNode(tid, n);
+//				node.pointers[ptr] = sector;
+//				if (node.getClass() == TNode.class) {
+//					TNode t = (TNode) node;
+//					writeRoot(tid, t.TNum, t);
+//				}else
+//					writeNode(tid, (InternalNode)node);
+//					
+//			} else
+//				n = readNode(tid, next);
+//			visit(tid, height-1, n, blockID%leavesBelow, buffer, action);
+//		}
+//	}
+	
 	//private
-	public int[] findRoot(int tnum){
-		int[] position = new int[2];
-		position[0] = ROOTS_LOCATION + tnum / TNODES_PER_SECTOR;  //TODO: verify this works.
-		position[1] = tnum % TNODES_PER_SECTOR;
-		return position;
-	}
-
-	private enum VisitAction {
-		write,
-		read;
+	public void readVisit(TransID tid, TNode root, int blockID, byte[] buffer) throws IllegalArgumentException, IOException {
+		if (blockID > getMaxDataBlockId(tid, root.TNum)) {
+			fill(new byte[BLOCK_SIZE_BYTES], buffer);
+			return;
+		}
+		
+		if (root.treeHeight == 1) {
+			fill(readBlock(tid, root.pointers[blockID]), buffer);
+			return;
+		}
+		
+		int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-2) * TNODE_POINTERS;
+		int index = blockID / leavesBelow;
+		
+		if(root.pointers[index] == Node.NULL_PTR) {
+			fill(readBlock(tid, root.pointers[blockID]), buffer);
+			return;
+		}
+		
+		readVisit(tid, root.treeHeight-1, getChild(tid, root, index), blockID%leavesBelow, buffer);
 	}
 	
-		//private
-	public void visit(TransID tid, int height, Node node, int blockID, byte[] buffer, VisitAction action) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-//		visitor.visit(tid, InternalNode.class, node.location, buffer);
+	//private
+	public void readVisit(TransID tid, int height, InternalNode node, int blockID, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		assert (height >= 1);
 		
-		int numpointers = node.getClass() == TNode.class ? TNODE_POINTERS : POINTERS_PER_INTERNAL_NODE;
-
-		if(height == 1) {
-			if (action == VisitAction.write)
-				writeBlock(tid, node.pointers[blockID], buffer);
-			else if (action == VisitAction.read) {
-				if (blockID >= numpointers)
-					throw new IllegalArgumentException();
-				if (node.pointers[blockID] == Node.NULL_PTR)
-					Arrays.fill(buffer, (byte)0);
-				else
-					fill(readBlock(tid, node.pointers[blockID]), buffer);
-			}
+		if (height == 1) {
+			if (blockID >= POINTERS_PER_INTERNAL_NODE)
+				fill(new byte[BLOCK_SIZE_BYTES], buffer);
+			else if (node.pointers[blockID] == Node.NULL_PTR)
+				fill(new byte[BLOCK_SIZE_BYTES], buffer);
+			else
+				fill(readBlock(tid, node.pointers[blockID]), buffer);
+			return;
 		}
-		else {
-			int leavesBelow = (int) Math.pow(numpointers, height-1);
-			int ptr = blockID / leavesBelow;
-			int next = node.pointers[ptr];
-			InternalNode n;
-			if (next == Node.NULL_PTR) {
-				if (action == VisitAction.read) {
-					Arrays.fill(buffer, (byte)0);
-					return;
-				}
-				int sector = getSectors(tid, BLOCK_SIZE_SECTORS);
-				n = new InternalNode(sector);
-				writeNode(tid, n);
-				node.pointers[ptr] = sector;
-				if (node.getClass() == TNode.class) {
-					TNode t = (TNode) node;
-					writeRoot(tid, t.TNum, t);
-				}else
-					writeNode(tid, (InternalNode)node);
-					
-			} else
-				n = readNode(tid, next);
-			visit(tid, height-1, n, blockID%leavesBelow, buffer, action);
+		
+		int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, height-1);
+		int index = blockID / leavesBelow;
+		
+		if(node.pointers[index] == Node.NULL_PTR) {
+			fill(new byte[BLOCK_SIZE_BYTES], buffer);
+			return;
 		}
+		readVisit(tid, height-1, getChild(tid, node, index), blockID%leavesBelow, buffer);		
 	}
-
+	
+	//private
+	public void writeVisit(TransID tid, TNode root, int blockID, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
+		assert(root.treeHeight >= 1);
+		if (root.treeHeight == 1) {
+			writeBlock(tid, root.pointers[blockID], buffer);
+			return;
+		}
+		int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-2) * TNODE_POINTERS;
+		int index = blockID / leavesBelow;
+		writeVisit(tid, root.treeHeight-1, getChild(tid, root, index), blockID%leavesBelow, buffer);
+	}
+	
+	//private
+	public void writeVisit(TransID tid, int height, InternalNode node, int blockID, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
+		assert (height >= 1);
+		assert (height >=1);
+		if(height == 1) {
+			assert (blockID < POINTERS_PER_INTERNAL_NODE);
+			writeBlock(tid, node.pointers[blockID], buffer);
+			return;
+		}
+		
+		int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, height-1);
+		int index = blockID / leavesBelow;
+		writeVisit(tid, height-1, getChild(tid, node, index), blockID%leavesBelow, buffer);
+	}
 
 	//private
 	//essentially c malloc, but with sectors, not bytes.
@@ -363,6 +439,21 @@ public class PTree{
 	//private
 	public void writeFreeList(TransID tid, BitMap freelist)  throws IllegalArgumentException, IndexOutOfBoundsException{
 		writeSectors(tid, FREE_LIST_LOCATION, freelist.getBytes());
+	}
+	
+	public InternalNode getChild(TransID tid, Node parent, int index) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
+		if (parent.pointers[index] != Node.NULL_PTR)
+			return readNode(tid, parent.pointers[index]);
+		int sector = getSectors(tid, BLOCK_SIZE_SECTORS);
+		InternalNode node = new InternalNode(sector);
+		parent.pointers[index] = sector;
+		writeNode(tid, node);
+		if(parent.getClass() == TNode.class) {
+			TNode t = (TNode) parent;
+			writeRoot(tid, t.TNum, t);
+		}else
+			writeNode(tid, (InternalNode)parent);
+		return node;
 	}
 
 	//private
@@ -430,6 +521,4 @@ public class PTree{
 			dest[i] = (byte) 0;
 		return dest;
 	}
-
-	
 }
