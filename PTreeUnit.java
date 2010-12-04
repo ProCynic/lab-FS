@@ -36,7 +36,7 @@ public class PTreeUnit {
 		
 		byte[] buffer2;
 		try{
-			buffer2 = ptree.readSectors(tid, start, start);
+			buffer2 = ptree.readSector(tid, start);
 		}catch(IOException e){
 			fail("Exception Fail");
 			buffer2=null;
