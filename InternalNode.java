@@ -3,6 +3,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.StreamCorruptedException;
 import java.util.Arrays;
 
 
@@ -34,7 +35,9 @@ public class InternalNode extends Node{
 		try {
 			ObjectInputStream ois = new ObjectInputStream(in);
 			this.pointers = (short[]) ois.readObject();
-		} catch (IOException e) {
+		}  catch (StreamCorruptedException e) {
+			throw new ClassNotFoundException();  //hack
+		}catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			System.exit(-1);

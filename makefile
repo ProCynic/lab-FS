@@ -22,8 +22,7 @@ Sector.java \
 SimpleLock.java \
 TNode.java \
 Transaction.java \
-TransID.java \
-Helper.java
+TransID.java
 
 junit_loc = /lusr/share/opt/junit-4.5.jar
 

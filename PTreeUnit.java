@@ -95,18 +95,6 @@ public class PTreeUnit {
 	}
 	
 	@Test
-	public void testGetSectors() throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
-		TransID tid = ptree.beginTrans();
-		for (int i = 0; i < 100; i+=2) {
-			assertTrue(ptree.getSectors(tid, 2) == i);
-//			if((i/2) % 10 == 0) {
-			ptree.commitTrans(tid);
-			tid = ptree.beginTrans();
-//			}
-		}
-	}
-	
-	@Test
 	public void testFreeList() {
 		TransID tid = ptree.beginTrans();
 		BitMap freelist = null;
@@ -119,6 +107,30 @@ public class PTreeUnit {
 		assertTrue(freelist.cardinality() == 0);
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetMaxBlockID0(){
+		TransID tid = ptree.beginTrans();
+		try{
+			int tnum = ptree.createTree(tid);
+			ptree.getMaxDataBlockId(tid, tnum);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+			
+		}
+	}
+	
+	@Test
+	public void testGetMaxBlockId() throws IllegalArgumentException, ResourceException, IOException {
+		TransID tid = ptree.beginTrans();
+		int tnum = ptree.createTree(tid);
+		ptree.writeData(tid, tnum, 5, new byte[PTree.BLOCK_SIZE_BYTES]);
+		ptree.commitTrans(tid);
+		tid = ptree.beginTrans();
+		ptree.writeData(tid, tnum, 5417, new byte[PTree.BLOCK_SIZE_BYTES]);
+		assertTrue(ptree.getMaxDataBlockId(tid, tnum) == 5417);
+	}
+
 	@Test
 	public void testWriteData(){
 		TransID tid = ptree.beginTrans();
@@ -146,6 +158,38 @@ public class PTreeUnit {
 	}
 	
 	@Test
+	public void testWriteData2(){
+		TransID tid = ptree.beginTrans();
+		int tnum = -1;
+		try{
+			tnum = ptree.createTree(tid);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");	
+		}		
+		
+		
+		byte[] buffer = new byte[PTree.BLOCK_SIZE_BYTES];
+		for(int i=0;i<buffer.length;i++){
+			buffer[i]=(byte)i;
+		}
+		
+		try{
+			int blockId = 0;
+			ptree.writeData(tid, tnum, blockId, buffer);
+			blockId = 1000;
+			ptree.writeData(tid,tnum,blockId,buffer);
+			ptree.commitTrans(tid);
+			tid = ptree.beginTrans();
+			blockId=500;
+			ptree.writeData(tid,tnum,blockId,buffer);			
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+		}	
+	}
+
+	@Test
 	public void testWriteReadData() throws IllegalArgumentException, IOException {
 		TransID tid = ptree.beginTrans();
 		int tnum = -1;
@@ -170,35 +214,6 @@ public class PTreeUnit {
 	}
 	
 	
-	@Test
-	public void testWriteData2(){
-		TransID tid = ptree.beginTrans();
-		int tnum = -1;
-		try{
-			tnum = ptree.createTree(tid);
-		}catch(IOException e){
-			e.printStackTrace();
-			fail("Exception Fail");	
-		}		
-		
-		int blockId = 0;
-		byte[] buffer = new byte[PTree.BLOCK_SIZE_BYTES];
-		for(int i=0;i<buffer.length;i++){
-			buffer[i]=(byte)i;
-		}
-		
-		try{
-			ptree.writeData(tid, tnum, blockId, buffer);
-			blockId = 1000;
-			ptree.writeData(tid,tnum,blockId,buffer);
-			blockId=500;
-			ptree.writeData(tid,tnum,blockId,buffer);			
-		}catch(IOException e){
-			e.printStackTrace();
-			fail("Exception Fail");
-		}	
-	}
-
 	public void testGetParamException(){
 		try{
 			ptree.getParam(PTree.ASK_MAX_TREES);
@@ -210,18 +225,17 @@ public class PTreeUnit {
 		}
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetMaxBlockID0(){
-		TransID tid = ptree.beginTrans();
-		try{
-			int tnum = ptree.createTree(tid);
-			ptree.getMaxDataBlockId(tid, tnum);
-		}catch(IOException e){
-			e.printStackTrace();
-			fail("Exception Fail");
-			
+	@Test
+		public void testGetSectors() throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
+			TransID tid = ptree.beginTrans();
+			for (int i = 0; i < 100; i+=2) {
+				assertTrue(ptree.getSectors(tid, 2) == i);
+	//			if((i/2) % 10 == 0) {
+				ptree.commitTrans(tid);
+				tid = ptree.beginTrans();
+	//			}
+			}
 		}
-	}
 
 	@Test
 	public void testAllocateRoots() {
