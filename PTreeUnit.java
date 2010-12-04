@@ -56,8 +56,6 @@ public class PTreeUnit {
 			} catch (IOException e) {
 				e.printStackTrace();
 				fail("Exception Fail");
-			} catch (IndexOutOfBoundsException e) {
-				System.out.println("Out of bounds: " + tnum);
 			}
 	}
 	

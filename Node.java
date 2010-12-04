@@ -9,7 +9,7 @@ public abstract class Node implements Serializable{
 
 	public abstract byte[] getBytes();
 
-	public abstract void fromBytes(byte[] buffer);
+	public abstract void fromBytes(byte[] buffer) throws ClassNotFoundException;
 	
 //	abstract public byte[] getBytes();
 //	abstract public void fromBytes(byte[] buffer);
