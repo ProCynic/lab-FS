@@ -9,7 +9,6 @@ import java.util.Arrays;
 public class TNode extends Node{
 	
 	private static final long serialVersionUID = 5733757348481243149L;
-	int[] pointers;
 	public byte[] metadata;
 	public int treeHeight;
 	int TNum;  //Helpful, even if not strictly necessary.
