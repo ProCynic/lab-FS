@@ -29,7 +29,6 @@ public class InternalNode extends Node{
 			this.pointers[i] = root.pointers[i];
 	}
 
-	@Override
 	public void fromBytes(byte[] buffer) {
 		assert buffer.length == PTree.BLOCK_SIZE_BYTES;
 		ByteArrayInputStream in = new ByteArrayInputStream(buffer);
@@ -47,7 +46,6 @@ public class InternalNode extends Node{
 		}
 	}
 
-	@Override
 	public byte[] getBytes() {
 		ByteBuffer buff = ByteBuffer.allocate(PTree.BLOCK_SIZE_BYTES);
 		ByteArrayOutputStream out = new ByteArrayOutputStream();

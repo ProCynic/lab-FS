@@ -40,10 +40,10 @@ public class PTree{
 	public static final int POINTERS_PER_INTERNAL_NODE = 256;
 	public static final int BLOCK_SIZE_SECTORS = numSectors(BLOCK_SIZE_BYTES);
 
-	private static final int TNODES_PER_SECTOR = Disk.SECTOR_SIZE / TNode.TNODE_SIZE;
-	private static final int ROOTS_LOCATION = ADisk.size() - MAX_TREES / TNODES_PER_SECTOR + (MAX_TREES % TNODES_PER_SECTOR != 0 ? 1 : 0); // TODO: verify	
-	private static final int FREE_LIST_LOCATION = 0; //TODO: ROOTS_LOCATION - 1 bit for every sector
-	private static final int AVAILABLE_SECTORS = 0;  //TODO: ADisk.size() - datastructures
+	public static final int TNODES_PER_SECTOR = Disk.SECTOR_SIZE / TNode.TNODE_SIZE;
+	public static final int ROOTS_LOCATION = ADisk.size() - MAX_TREES / TNODES_PER_SECTOR + (MAX_TREES % TNODES_PER_SECTOR != 0 ? 1 : 0); // TODO: verify	
+	public static final int FREE_LIST_LOCATION = ROOTS_LOCATION - (ROOTS_LOCATION / 9 + ((ROOTS_LOCATION % 9 != 0) ? 1 : 0));
+	public static final int AVAILABLE_SECTORS = FREE_LIST_LOCATION;
 
 
 
@@ -241,19 +241,26 @@ public class PTree{
 
 	//private
 	public void writeRoot(TransID tid, int tnum, TNode node) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-		int[] position = findRoot(node.TNum);  //TODO: Fix to return offset as well
+		
+		int[] position = findRoot(tnum);  //TODO: Fix to return offset as well
+		
+		
 		int sectornum = position[0];
 		int offset = position[1];
+		
 
 		ByteBuffer buff = ByteBuffer.allocate(Disk.SECTOR_SIZE);
+		byte[] t = buff.array();
 		buff.put(readSectors(tid,sectornum, sectornum));
+		t = buff.array();
+		
 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		ObjectOutputStream oos = new ObjectOutputStream(out);
 		oos.writeObject(node);
+		t = out.toByteArray();
 
-		buff.put(out.toByteArray(), offset * TNode.TNODE_SIZE, TNode.TNODE_SIZE);
-
+		buff.put(out.toByteArray(), offset * TNode.TNODE_SIZE, out.toByteArray().length);
 		writeSectors(tid, sectornum, buff.array());
 
 	}
@@ -382,9 +389,8 @@ public class PTree{
 
 	//private
 	public byte[] readSectors(TransID tid, int start, int finish) throws IllegalArgumentException, IndexOutOfBoundsException, IOException{
-		assert finish >= start;
-		assert start >= 0;
-		assert finish < AVAILABLE_SECTORS;
+		if (start > finish)
+			throw new IllegalArgumentException();
 		byte[] sector = new byte[Disk.SECTOR_SIZE];
 		ByteBuffer buffer = ByteBuffer.allocate((finish-start) * Disk.SECTOR_SIZE);
 		for(int i = start; i < finish; i++) {
@@ -396,7 +402,8 @@ public class PTree{
 
 	//private
 	public void writeSectors(TransID tid, int start, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException{
-		ByteBuffer buff = ByteBuffer.allocate(numSectors(buffer));
+		ByteBuffer buff = ByteBuffer.allocate(numSectors(buffer)*Disk.SECTOR_SIZE);
+		buff.put(buffer);
 		byte[] sector = new byte[Disk.SECTOR_SIZE];
 		int i = 0;
 		while (buff.hasRemaining()) {
@@ -424,18 +431,5 @@ public class PTree{
 		return dest;
 	}
 
-	class WriteVisitor extends Visitor {
-
-		public WriteVisitor(TransID tid) {
-			super(tid);
-			// TODO Auto-generated constructor stub
-		}
-
-		@Override
-		public void visit(TransID tid, Class type, int location, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
-			if(type == InternalNode.class) {
-				
-			}
-		}
-	}
+	
 }

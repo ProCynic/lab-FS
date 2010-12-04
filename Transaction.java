@@ -53,7 +53,7 @@ class Write {
 	public byte[] buffer;
 	
 	Write(int sectorNum, byte buffer[]) throws IllegalArgumentException, IndexOutOfBoundsException{
-		if (sectorNum < 0 || sectorNum >= ADisk.REDO_LOG_SECTORS - 2 )
+		if (sectorNum < 0 || sectorNum >= ADisk.size() )
 			throw new IndexOutOfBoundsException();
 		
 		if (buffer.length != Disk.SECTOR_SIZE)

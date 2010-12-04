@@ -23,7 +23,8 @@ public class BitMap extends BitSet {
 	}
 
 	public byte[] getBytes() {
-		byte[] bytes = new byte[this.length() / 8 + (this.length() % 8 != 0 ? 1 : 0)];
+		byte[] bytes = new byte[PTree.ROOTS_LOCATION - PTree.FREE_LIST_LOCATION];
+		int x = this.length();
 	    for (int i=0; i<this.length(); i++) {
 	        if (this.get(i)) {
 	            bytes[bytes.length-i/8-1] |= 1<<(i%8);
