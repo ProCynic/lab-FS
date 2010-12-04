@@ -108,6 +108,32 @@ public class PTreeUnit {
 	}
 	
 	@Test
+	public void testTreeWriteBlock(){
+		TransID tid = ptree.beginTrans();
+		int tnum = -1;
+		try{
+			tnum = ptree.createTree(tid);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");	
+		}		
+		
+		int blockId = 0;
+		byte[] buffer = new byte[PTree.BLOCK_SIZE_BYTES];
+		for(int i=0;i<buffer.length;i++){
+			buffer[i]=(byte)i;
+		}
+		
+		try{
+			ptree.writeData(tid, tnum, blockId, buffer);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+		}				
+		
+	}
+
+	@Test
 	public void testAllocateRoots() {
 		TransID tid = ptree.beginTrans();
 		int tnum = -1;
@@ -191,32 +217,6 @@ public class PTreeUnit {
 			e.printStackTrace();
 			fail("Exception Fail");
 		}				
-	}
-	
-	@Test
-	public void testTreeWriteBlock(){
-		TransID tid = ptree.beginTrans();
-		int tnum = -1;
-		try{
-			tnum = ptree.createTree(tid);
-		}catch(IOException e){
-			e.printStackTrace();
-			fail("Exception Fail");	
-		}		
-		
-		int blockId = 0;
-		byte[] buffer = new byte[PTree.BLOCK_SIZE_BYTES];
-		for(int i=0;i<buffer.length;i++){
-			buffer[i]=(byte)i;
-		}
-		
-		try{
-			ptree.writeData(tid, tnum, blockId, buffer);
-		}catch(IOException e){
-			e.printStackTrace();
-			fail("Exception Fail");
-		}				
-		
 	}
 	
 

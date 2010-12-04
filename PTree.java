@@ -169,7 +169,9 @@ public class PTree{
 	throws IOException, IllegalArgumentException
 	{
 		TNode root = readRoot(xid, tnum);
-		while (TNODE_POINTERS * Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight) >= blockId) {
+		if (root.treeHeight == 0)
+			root.treeHeight++;
+		while ((TNODE_POINTERS * Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-1)-1) < blockId) {
 			root.treeHeight++;
 			InternalNode n = new InternalNode(getSectors(xid, BLOCK_SIZE_SECTORS), root);
 			root.clear();
@@ -425,7 +427,10 @@ public class PTree{
 	public void writeVisit(TransID tid, TNode root, int blockID, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
 		assert(root.treeHeight >= 1);
 		if (root.treeHeight == 1) {
-			writeBlock(tid, root.pointers[blockID], buffer);
+			int block = getSectors(tid, BLOCK_SIZE_SECTORS);
+			writeBlock(tid, block, buffer);
+			root.pointers[blockID] = block;
+			writeRoot(tid, root.TNum, root);			
 			return;
 		}
 		int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-2) * TNODE_POINTERS;
@@ -439,7 +444,10 @@ public class PTree{
 		assert (height >=1);
 		if(height == 1) {
 			assert (blockID < POINTERS_PER_INTERNAL_NODE);
-			writeBlock(tid, node.pointers[blockID], buffer);
+			int block = getSectors(tid, BLOCK_SIZE_SECTORS);
+			writeBlock(tid, block, buffer);
+			node.pointers[blockID] = block;
+			writeNode(tid, node);	
 			return;
 		}
 
@@ -462,18 +470,22 @@ public class PTree{
 
 	//private
 	//essentially c malloc, but with sectors, not bytes.
-	public int getSectors(TransID tid, int blockSizeSectors) throws IllegalArgumentException, IndexOutOfBoundsException, IOException, ResourceException{
+	public int getSectors(TransID tid, int numSectors) throws IllegalArgumentException, IndexOutOfBoundsException, IOException, ResourceException{
 		BitMap freelist = readFreeList(tid);
 		try {
-			for(int i = 0; i < freelist.length();i=freelist.nextClearBit(i))   {//Could be more efficient, but I don't think it's a problem.
-				if(freelist.nextClearBit(i) > i+blockSizeSectors)
+			for(int i = freelist.nextClearBit(0); i < AVAILABLE_SECTORS;i=freelist.nextClearBit(i+1))   {//Could be more efficient, but I don't think it's a problem.
+				int tmp = freelist.nextSetBit(i);
+				if(freelist.nextSetBit(i) >= i+numSectors || freelist.nextSetBit(i) < 0) {
+					freelist.clear(i, i+numSectors);
+					writeFreeList(tid, freelist);
 					return i;
+				}
 			}
 		} catch (IndexOutOfBoundsException e) {
 			throw new ResourceException();
-		}
-		System.exit(-1);
-		return 0;
+		}		
+		
+		throw new ResourceException();
 
 	}
 
