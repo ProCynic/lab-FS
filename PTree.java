@@ -8,17 +8,10 @@
  *
  */
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+
 import java.io.IOException;
-import java.io.EOFException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
 
 public class PTree{
 	public static final int METADATA_SIZE = 64;
@@ -158,18 +151,20 @@ public class PTree{
 	public void writeData(TransID xid, int tnum, int blockId, byte buffer[])
 	throws IOException, IllegalArgumentException
 	{
-		TNode root = readRoot(xid, tnum);
-		if (root.treeHeight == 0)
-			root.treeHeight++;
-		while ((TNODE_POINTERS * Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-1)-1) < blockId) {
-			root.treeHeight++;
-			InternalNode n = new InternalNode(getSectors(xid, BLOCK_SIZE_SECTORS), root);
-			root.clear();
-			root.pointers[0] = n.location;
-			writeNode(xid, n);
-		}
-		writeRoot(xid, root.TNum, root);
-		writeVisit(xid, root, blockId, buffer);
+//		TNode root = readRoot(xid, tnum);
+//		if (root.treeHeight == 0) //expand the tree
+//			while(root.treeHeight 
+//					root.treeHeight++;
+//			
+//		while ((TNODE_POINTERS * Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-1)-1) < blockId) {
+//			root.treeHeight++;
+//			InternalNode n = new InternalNode(getSectors(xid, BLOCK_SIZE_SECTORS), root);
+//			root.clear();
+//			root.pointers[0] = n.location;
+//			writeNode(xid, n);
+//		}
+//		writeRoot(xid, root.TNum, root);
+//		writeVisit(xid, root, blockId, buffer);
 
 	}
 
@@ -237,7 +232,7 @@ public class PTree{
 		if (tnum >= MAX_TREES)
 			throw new IndexOutOfBoundsException();
 		int[] position = new int[2];
-		position[0] = ROOTS_LOCATION + tnum / TNODES_PER_SECTOR;  //TODO: verify this works.
+		position[0] = ROOTS_LOCATION + tnum / TNODES_PER_SECTOR;
 		position[1] = tnum % TNODES_PER_SECTOR;
 		if (position[0] >= this.adisk.getNSectors())
 			throw new IndexOutOfBoundsException();
@@ -246,7 +241,7 @@ public class PTree{
 
 	//private
 	public TNode readRoot(TransID tid, int tnum) throws IOException, IndexOutOfBoundsException{
-		int[] position = findRoot(tnum);  //TODO: Fix to return offset as well
+		int[] position = findRoot(tnum);
 		int sectornum = position[0];
 		int offset = position[1] * TNode.TNODE_SIZE;
 
@@ -385,7 +380,6 @@ public class PTree{
 		try {
 
 			for(int i = freelist.nextClearBit(0); i < AVAILABLE_SECTORS;i=freelist.nextClearBit(i+1))   {
-				int tmp = freelist.nextSetBit(i);
 				if(freelist.nextSetBit(i) >= i+numSectors || freelist.nextSetBit(i) < 0) {
 					freelist.clear(i, i+numSectors);
 					writeFreeList(tid, freelist);

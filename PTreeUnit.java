@@ -189,7 +189,6 @@ public class PTreeUnit {
 	}
 
 	public void testGetParamException(){
-		TransID tid = ptree.beginTrans();
 		try{
 			ptree.getParam(PTree.ASK_MAX_TREES);
 			ptree.getParam(PTree.ASK_FREE_SPACE);
