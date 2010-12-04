@@ -189,7 +189,7 @@ public class PTree{
 		if (t == null) 
 			throw new IllegalArgumentException();
 		byte[] metadata = t.metadata;
-		fill(metadata, buffer);
+		Helper.fill(metadata, buffer);
 
 	}
 
@@ -201,7 +201,7 @@ public class PTree{
 		TNode node = readRoot(xid, tnum);
 		if (node == null)
 			throw new IllegalArgumentException();
-		fill(buffer,node.metadata);
+		Helper.fill(buffer,node.metadata);
 		writeRoot(xid, tnum, node);
 	}
 
@@ -377,12 +377,12 @@ public class PTree{
 	//private
 	public void readVisit(TransID tid, TNode root, int blockID, byte[] buffer) throws IllegalArgumentException, IOException {
 		if (blockID > getMaxDataBlockId(tid, root.TNum)) {
-			fill(new byte[BLOCK_SIZE_BYTES], buffer);
+			Helper.fill(new byte[BLOCK_SIZE_BYTES], buffer);
 			return;
 		}
 
 		if (root.treeHeight == 1) {
-			fill(readBlock(tid, root.pointers[blockID]), buffer);
+			Helper.fill(readBlock(tid, root.pointers[blockID]), buffer);
 			return;
 		}
 
@@ -390,7 +390,7 @@ public class PTree{
 		int index = blockID / leavesBelow;
 
 		if(root.pointers[index] == Node.NULL_PTR) {
-			fill(readBlock(tid, root.pointers[blockID]), buffer);
+			Helper.fill(readBlock(tid, root.pointers[blockID]), buffer);
 			return;
 		}
 
@@ -403,11 +403,11 @@ public class PTree{
 
 		if (height == 1) {
 			if (blockID >= POINTERS_PER_INTERNAL_NODE)
-				fill(new byte[BLOCK_SIZE_BYTES], buffer);
+				Helper.fill(new byte[BLOCK_SIZE_BYTES], buffer);
 			else if (node.pointers[blockID] == Node.NULL_PTR)
-				fill(new byte[BLOCK_SIZE_BYTES], buffer);
+				Helper.fill(new byte[BLOCK_SIZE_BYTES], buffer);
 			else
-				fill(readBlock(tid, node.pointers[blockID]), buffer);
+				Helper.fill(readBlock(tid, node.pointers[blockID]), buffer);
 			return;
 		}
 
@@ -415,7 +415,7 @@ public class PTree{
 		int index = blockID / leavesBelow;
 
 		if(node.pointers[index] == Node.NULL_PTR) {
-			fill(new byte[BLOCK_SIZE_BYTES], buffer);
+			Helper.fill(new byte[BLOCK_SIZE_BYTES], buffer);
 			return;
 		}
 		readVisit(tid, height-1, getChild(tid, node, index), blockID%leavesBelow, buffer);		
@@ -467,6 +467,8 @@ public class PTree{
 		try {
 			for(int i = 0; i < freelist.length();i=freelist.nextClearBit(i))   {//Could be more efficient, but I don't think it's a problem.
 				if(freelist.nextClearBit(i) > i+blockSizeSectors)
+					//TODO: fix
+					
 					return i;
 			}
 		} catch (IndexOutOfBoundsException e) {
@@ -598,15 +600,5 @@ public class PTree{
 
 	public static int numSectors(int bytes) {
 		return (bytes / Disk.SECTOR_SIZE) + (bytes % Disk.SECTOR_SIZE != 0 ? 1 : 0);
-	}
-
-	public static byte[] fill(byte[] src, byte[] dest) {
-		assert (dest.length >= src.length);
-		int i;
-		for(i = 0; i < src.length; i++)
-			dest[i] = src[i];
-		for(; i < dest.length; i++)
-			dest[i] = (byte) 0;
-		return dest;
 	}
 }

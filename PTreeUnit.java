@@ -141,6 +141,7 @@ public class PTreeUnit {
 			try {
 				tnum = ptree.getTNum(tid);
 				ptree.writeRoot(tid, tnum, new TNode(tnum));
+				System.out.println("Wrote tnum: " + tnum);
 				if(i % 30 == 0) {
 					ptree.commitTrans(tid);
 					tid = ptree.beginTrans();
