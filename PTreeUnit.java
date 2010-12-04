@@ -188,6 +188,31 @@ public class PTreeUnit {
 		}	
 	}
 
+	public void testGetParamException(){
+		TransID tid = ptree.beginTrans();
+		try{
+			ptree.getParam(PTree.ASK_MAX_TREES);
+			ptree.getParam(PTree.ASK_FREE_SPACE);
+			ptree.getParam(PTree.ASK_FREE_TREES);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+		}
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetMaxBlockID0(){
+		TransID tid = ptree.beginTrans();
+		try{
+			int tnum = ptree.createTree(tid);
+			ptree.getMaxDataBlockId(tid, tnum);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+			
+		}
+	}
+
 	@Test
 	public void testAllocateRoots() {
 		TransID tid = ptree.beginTrans();

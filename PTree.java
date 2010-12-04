@@ -121,22 +121,31 @@ public class PTree{
 	public int getMaxDataBlockId(TransID xid, int tnum)
 	throws IOException, IllegalArgumentException
 	{
-//		TNode root = readRoot(xid, tnum);
-//		if (root.treeHeight == 0)
-//			throw new IllegalArgumentException();
-//		for (int n = TNODE_POINTERS-1; n >= 0; n--) {
-//			if (root.pointers[n] != Node.NULL_PTR)
-//				if (root.treeHeight == 1)
-//					return n;
-//				else
-//					return 8 * maxBlockId(xid, readNode(xid, root.pointers[n]), root.treeHeight - 1);
-//		}
-		return 0; //TODO
+		TNode root = readRoot(xid, tnum);
+		if (root.treeHeight == 0)
+			throw new IllegalArgumentException();
+		for (int n = root.pointers.length; n > 0; --n) {
+			if (root.pointers[n] != Node.NULL_PTR)
+				if (root.treeHeight == 1)
+					return n;
+				else
+					return getMaxDataBlockId(xid, readNode(xid, root.pointers[n]), root.treeHeight-1, POINTERS_PER_INTERNAL_NODE * n);
+		}
+		assert(false);
+		return Integer.MIN_VALUE;
 	}
 
-//	public int getMaxDataBlockId(TransID tid, InternalNode node) {
-//		
-//	}
+	public int getMaxDataBlockId(TransID tid, InternalNode node, int height, int leavesLeft) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+		for (int i = node.pointers.length; i > 0; --i)  {//Step through from right to left
+			if (node.pointers[i] != Node.NULL_PTR)
+				if (height == 1) //then the pointers are pointing to leaves
+						return leavesLeft + i;
+				else
+					return getMaxDataBlockId(tid, readNode(tid, node.pointers[i]), height-1, leavesLeft + (POINTERS_PER_INTERNAL_NODE * i));
+		}
+		assert (false);  //This node has no children, so it shouldn't exist.
+		return Integer.MIN_VALUE;
+	}
 
 	public void readData(TransID xid, int tnum, int blockId, byte buffer[])
 	throws IOException, IllegalArgumentException
