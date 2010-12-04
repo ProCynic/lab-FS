@@ -1,15 +1,20 @@
 Administrative: 
   Geoffrey Parker - grp352 - gparker
   Alex Chan - ayc87- aychan
-  Slip Days this project: 3
-  Slip Days total: 4
+  Slip Days this project: 1
+  Slip Days total: 5
 
 Source:
   Everything in the tarball we downloaded.
-  Transaction.java
-    Transaction and Write Classes. A transaction is a wrapper around a list of writes.  A write is a sector number and a byte array.
-  Sector.java
-    A wrapper around a byte array.  Mostly created so we could write a .equals method.
+  BitMap.java
+  FlatFS.java
+  FlatFSUnit.java
+  Helper.java
+  InternalNode.java
+  Node.java
+  Ptree.java
+  PTreeUnit.java
+  TNode.java
    
 Description:
 
@@ -27,6 +32,6 @@ Description:
 
 Testing:
   We are using JUnit 4 for our unit tests.
-  We have 1 program, ADiskUnit, that runs all our unit tests.
-  We tested to make sure that all the pubilc methods of ADisk that have exceptions specified in the spec throw those exceptions when appropriate.
-  We tested the public api of ADisk to make sure it functioned correctly.
+  We have 2 program, PTreeUnit and FlatFSUnit, that runs all our unit tests.
+  We tested to make sure that most of the pubilc methods of PTree work, and a few of FlatFS work while having exceptions specified in the spec throw those exceptions when appropriate.
+  We tested the public api of PTree to make sure it functions correctly for the most part.  FlatFS was not tested as extensively.
