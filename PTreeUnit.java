@@ -310,5 +310,23 @@ public class PTreeUnit {
 		}				
 	}
 	
+	@Test
+	public void testWriteandReadTreeMetadata(){
+		try{
+			TransID tid = ptree.beginTrans();
+			int tnum = ptree.createTree(tid);
+			byte buffer[] = new byte[PTree.METADATA_SIZE];
+			for (int i=0;i<buffer.length;i++){
+				buffer[i]=(byte)i;}		
+			ptree.writeTreeMetadata( tid, tnum, buffer);
+			byte buffer2[] =new byte[PTree.METADATA_SIZE];
+			ptree.readTreeMetadata(tid,tnum,buffer2);			
+			assertTrue(Arrays.equals(buffer,buffer2));				
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");			
+		}
+		
+	}
 
 }
