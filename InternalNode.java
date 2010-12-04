@@ -15,12 +15,18 @@ public class InternalNode extends Node{
 
 	public InternalNode(int location) {
 		this.pointers = new int[PTree.POINTERS_PER_INTERNAL_NODE];
-		Arrays.fill(pointers, Integer.MIN_VALUE);
+		Arrays.fill(pointers, NULL_PTR);
 	}
 	
 	public InternalNode(int location, byte[] buffer) {
 		this(location);
 		this.fromBytes(buffer);
+	}
+	
+	public InternalNode(int location, Node root) {
+		this(location);
+		for(int i = 0; i < root.pointers.length; i++)
+			this.pointers[i] = root.pointers[i];
 	}
 
 	@Override

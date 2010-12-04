@@ -6,5 +6,5 @@ public abstract class Visitor {
 	public Visitor(TransID tid) {
 		this.tid = tid;
 	}
-	public abstract void visit(Node current, Object next) throws IllegalArgumentException, IndexOutOfBoundsException, IOException;
+	public abstract void visit(Class type, int location, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, IOException;
 }
