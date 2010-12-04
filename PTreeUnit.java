@@ -17,7 +17,6 @@ public class PTreeUnit {
 	@Before
 	public void setUp() throws Exception {
 		 ptree = new PTree(true);
-		 System.out.println("Beginning Test");
 	}
 
 	@After
@@ -92,6 +91,18 @@ public class PTreeUnit {
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail("Exception Fail");
+		}
+	}
+	
+	@Test
+	public void testGetSectors() throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
+		TransID tid = ptree.beginTrans();
+		for (int i = 0; i < 100; i+=2) {
+			assertTrue(ptree.getSectors(tid, 2) == i);
+//			if((i/2) % 10 == 0) {
+			ptree.commitTrans(tid);
+			tid = ptree.beginTrans();
+//			}
 		}
 	}
 	
