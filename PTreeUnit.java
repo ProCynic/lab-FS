@@ -56,9 +56,7 @@ public class PTreeUnit {
 			} catch (IOException e) {
 				e.printStackTrace();
 				fail("Exception Fail");
-			} catch (IndexOutOfBoundsException e) {
-				System.out.println("Out of bounds: " + tnum);
-			}
+			} 
 	}
 	
 	@Test(expected=IndexOutOfBoundsException.class)
@@ -99,20 +97,47 @@ public class PTreeUnit {
 		}
 	}
 	
+//	@Test
+//	public void testAllocateRoots2() {
+//		TransID tid = ptree.beginTrans();
+//		int tnum = -1;
+//		for (int i = 0; i < 2 * PTree.MAX_TREES; i++) {
+//				try {
+//					tnum = ptree.getTNum(tid);
+//					ptree.writeRoot(tid, tnum, new TNode(tnum));
+//					ptree.deleteTree(tid, tnum);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//					fail("Exception Fail");
+//				}
+//		}
+//	}
+	
 	@Test
-	public void testAllocateRoots2() {
+	public void testWriteAndReadBlock(){
 		TransID tid = ptree.beginTrans();
-		int tnum = -1;
-		for (int i = 0; i < 2 * PTree.MAX_TREES; i++) {
-				try {
-					tnum = ptree.getTNum(tid);
-					ptree.writeRoot(tid, tnum, new TNode(tnum));
-					ptree.deleteTree(tid, tnum);
-				} catch (Exception e) {
-					e.printStackTrace();
-					fail("Exception Fail");
-				}
+		int sectornum=0;		
+		byte[] buffer = new byte[PTree.BLOCK_SIZE_BYTES];
+		
+		for(int i=0;i<buffer.length;i++){
+			buffer[i]=(byte)i;
+		}		
+		ptree.writeBlock(tid,sectornum, buffer);
+		byte[] buffer2 = null;
+		try{
+			buffer2 = ptree.readBlock(tid, sectornum);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");
+		}
+		System.out.println("buffer.length ="+buffer.length);
+		System.out.println("buffer2.length ="+buffer2.length);
+		assertTrue(buffer.length == buffer2.length);
+		for(int i=0;i<buffer.length;i++){
+			assertTrue(buffer[i]==buffer2[i]);
 		}
 	}
+	
+	
 
 }
