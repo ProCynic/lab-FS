@@ -3,9 +3,9 @@ import java.io.Serializable;
 @SuppressWarnings("serial")
 public abstract class Node implements Serializable{
 	
-	public static final int NULL_PTR = Integer.MIN_VALUE;
+	public static final short NULL_PTR = (short) Short.MIN_VALUE;
 	
-	int[] pointers;
+	short[] pointers;
 
 	public abstract byte[] getBytes();
 

@@ -188,7 +188,8 @@ public class PTree{
 		writeRoot(xid, tnum, node);
 	}
 
-	//Do we need a tid?
+	//Do we need a tid?  free list depends on transaction.
+	//We'll just return the committed freelist.
 	public int getParam(int param)
 	throws IOException, IllegalArgumentException
 	{
@@ -327,14 +328,14 @@ public class PTree{
 	public void writeVisit(TransID tid, TNode root, int blockID, byte[] buffer) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
 		assert(root.treeHeight >= 1);
 		if (root.treeHeight == 1) {
-			int block = getSectors(tid, BLOCK_SIZE_SECTORS);
+			short block = getSectors(tid, BLOCK_SIZE_SECTORS);
 			writeBlock(tid, block, buffer);
 			root.pointers[blockID] = block;
 			writeRoot(tid, root.TNum, root);			
 			return;
 		}
-		int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-2) * TNODE_POINTERS;
-		int index = blockID / leavesBelow;
+		int leavesBelow = (int) Math.pow(POINTERS_PER_INTERNAL_NODE, root.treeHeight-1);
+		int index =  (blockID / leavesBelow);
 		writeVisit(tid, root.treeHeight-1, getChild(tid, root, index), blockID%leavesBelow, buffer);
 	}
 
@@ -344,7 +345,7 @@ public class PTree{
 		assert (height >=1);
 		if(height == 1) {
 			assert (blockID < POINTERS_PER_INTERNAL_NODE);
-			int block = getSectors(tid, BLOCK_SIZE_SECTORS);
+			short block = getSectors(tid, BLOCK_SIZE_SECTORS);
 			writeBlock(tid, block, buffer);
 			node.pointers[blockID] = block;
 			writeNode(tid, node);	
@@ -370,7 +371,7 @@ public class PTree{
 
 	//private
 	//essentially c malloc, but with sectors, not bytes.
-	public int getSectors(TransID tid, int numSectors) throws IllegalArgumentException, IndexOutOfBoundsException, IOException, ResourceException{
+	public short getSectors(TransID tid, int numSectors) throws IllegalArgumentException, IndexOutOfBoundsException, IOException, ResourceException{
 		BitMap freelist = readFreeList(tid);
 		try {
 
@@ -379,7 +380,7 @@ public class PTree{
 				if(freelist.nextSetBit(i) >= i+numSectors || freelist.nextSetBit(i) < 0) {
 					freelist.clear(i, i+numSectors);
 					writeFreeList(tid, freelist);
-					return i;
+					return (short) i;
 				}
 			}
 		} catch (IndexOutOfBoundsException e) {
@@ -418,7 +419,7 @@ public class PTree{
 	public InternalNode getChild(TransID tid, Node parent, int index) throws IllegalArgumentException, IndexOutOfBoundsException, ResourceException, IOException {
 		if (parent.pointers[index] != Node.NULL_PTR)
 			return readNode(tid, parent.pointers[index]);
-		int sector = getSectors(tid, BLOCK_SIZE_SECTORS);
+		short sector = getSectors(tid, BLOCK_SIZE_SECTORS);
 		InternalNode node = new InternalNode(sector);
 		parent.pointers[index] = sector;
 		writeNode(tid, node);
@@ -431,7 +432,7 @@ public class PTree{
 	}
 
 	//private
-	public InternalNode readNode(TransID tid, int sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
+	public InternalNode readNode(TransID tid, short sectornum) throws IllegalArgumentException, IndexOutOfBoundsException, IOException {
 		try {
 			return new InternalNode(sectornum, readBlock(tid, sectornum));
 		} catch (ClassNotFoundException e) {

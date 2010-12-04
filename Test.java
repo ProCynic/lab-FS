@@ -43,6 +43,7 @@ public class Test {
 		ObjectOutputStream oos = new ObjectOutputStream(out);
 		oos.writeObject(new TNode(0));
 		System.out.println(out.toByteArray().length);
+		TNode obj = new TNode(5);
 		
 		byte[] buff = new TNode(0).getBytes();
 		

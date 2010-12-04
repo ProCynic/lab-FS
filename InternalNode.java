@@ -3,7 +3,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 
@@ -11,19 +10,19 @@ public class InternalNode extends Node{
 
 	private static final long serialVersionUID = 7400442076200379954L;
 	
-	public int location;
+	public short location;
 
 	public InternalNode(int location) {
-		this.pointers = new int[PTree.POINTERS_PER_INTERNAL_NODE];
+		this.pointers = new short[PTree.POINTERS_PER_INTERNAL_NODE];
 		Arrays.fill(pointers, NULL_PTR);
 	}
 	
-	public InternalNode(int location, byte[] buffer) throws ClassNotFoundException {
+	public InternalNode(short location, byte[] buffer) throws ClassNotFoundException {
 		this(location);
 		this.fromBytes(buffer);
 	}
 	
-	public InternalNode(int location, Node root) {
+	public InternalNode(short location, Node root) {
 		this(location);
 		for(int i = 0; i < root.pointers.length; i++)
 			this.pointers[i] = root.pointers[i];
@@ -34,7 +33,7 @@ public class InternalNode extends Node{
 		ByteArrayInputStream in = new ByteArrayInputStream(buffer);
 		try {
 			ObjectInputStream ois = new ObjectInputStream(in);
-			this.pointers = (int[]) ois.readObject();
+			this.pointers = (short[]) ois.readObject();
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -43,7 +42,6 @@ public class InternalNode extends Node{
 	}
 
 	public byte[] getBytes() {
-		ByteBuffer buff = ByteBuffer.allocate(PTree.BLOCK_SIZE_BYTES);
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		try {
 			ObjectOutputStream oos = new ObjectOutputStream(out);
@@ -54,7 +52,7 @@ public class InternalNode extends Node{
 			e.printStackTrace();
 			System.exit(-1);
 		}
-		buff.put(out.toByteArray());  //Resize to BLOCK_SIZE_BYTES
-		return buff.array();
+		
+		return Helper.fill(out.toByteArray(), new byte[PTree.BLOCK_SIZE_BYTES]);
 	}
 }

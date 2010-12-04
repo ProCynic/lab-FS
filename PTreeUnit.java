@@ -3,6 +3,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -108,7 +109,7 @@ public class PTreeUnit {
 	}
 	
 	@Test
-	public void testTreeWriteBlock(){
+	public void testWriteData(){
 		TransID tid = ptree.beginTrans();
 		int tnum = -1;
 		try{
@@ -134,7 +135,32 @@ public class PTreeUnit {
 	}
 	
 	@Test
-	public void testTreeWriteBlock1(){
+	public void testWriteReadData() throws IllegalArgumentException, IOException {
+		TransID tid = ptree.beginTrans();
+		int tnum = -1;
+		try{
+			tnum = ptree.createTree(tid);
+		}catch(IOException e){
+			e.printStackTrace();
+			fail("Exception Fail");	
+		}
+		
+		int blockId = 573;
+		byte[] buffer = new byte[PTree.BLOCK_SIZE_BYTES];
+		for(int i=0;i<buffer.length;i++){
+			buffer[i]=(byte)i;
+		}
+		byte[] buffer2 = new byte[PTree.BLOCK_SIZE_BYTES];
+		
+		ptree.writeData(tid, tnum, blockId, buffer);
+		ptree.readData(tid, tnum, blockId, buffer2);
+		assertTrue(Arrays.equals(buffer, buffer2));
+		
+	}
+	
+	
+	@Test
+	public void testWriteData2(){
 		TransID tid = ptree.beginTrans();
 		int tnum = -1;
 		try{
@@ -196,7 +222,7 @@ public class PTreeUnit {
 			try {
 				tnum = ptree.getTNum(tid);
 				ptree.writeRoot(tid, tnum, new TNode(tnum));
-				System.out.println("Wrote tnum: " + tnum);
+//				System.out.println("Wrote tnum: " + tnum);
 				if(i % 30 == 0) {
 					ptree.commitTrans(tid);
 					tid = ptree.beginTrans();

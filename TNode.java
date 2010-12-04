@@ -9,15 +9,14 @@ import java.util.Arrays;
 public class TNode extends Node{
 	
 	private static final long serialVersionUID = 5733757348481243149L;
-	int[] pointers;
 	public byte[] metadata;
 	public int treeHeight;
 	int TNum;  //Helpful, even if not strictly necessary.
-	public static final int TNODE_SIZE = 133;
+	public static final int TNODE_SIZE = 117;
 	
 	private TNode() {
 		this.metadata = new byte[PTree.METADATA_SIZE];
-		this.pointers = new int[PTree.TNODE_POINTERS];
+		this.pointers = new short[PTree.TNODE_POINTERS];
 		Arrays.fill(pointers, NULL_PTR);
 		this.treeHeight = 0;
 	}
@@ -46,7 +45,7 @@ public class TNode extends Node{
 			this.treeHeight = ois.readInt();
 			int bytesRead = ois.read(metadata);
 			assert (bytesRead == PTree.METADATA_SIZE);
-			this.pointers = (int[]) ois.readObject();
+			this.pointers = (short[]) ois.readObject();
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
